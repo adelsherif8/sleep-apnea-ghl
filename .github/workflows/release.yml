@@ -1,0 +1,52 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build plugin ZIP
+        run: |
+          mkdir -p build
+          zip -r build/sleep-apnea-ghl.zip \
+            sleep-apnea-ghl.php \
+            logo.svg \
+            vendor/ \
+            composer.json \
+            composer.lock \
+            --exclude "vendor/yahnis-elsts/plugin-update-checker/tests/*" \
+            --exclude "vendor/yahnis-elsts/plugin-update-checker/.git/*"
+          echo "Built sleep-apnea-ghl.zip (v${{ steps.version.outputs.VERSION }})"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ steps.version.outputs.VERSION }}"
+          tag_name: ${{ github.ref_name }}
+          body: |
+            ## Sleep Apnea Estimator + GoHighLevel v${{ steps.version.outputs.VERSION }}
+
+            ### Install / Update
+            1. Download `sleep-apnea-ghl.zip` below
+            2. In WordPress: Plugins → Add New → Upload Plugin
+            3. Or: your sites will auto-detect this release via the update checker
+
+            ---
+            *Auto-released via GitHub Actions*
+          files: build/sleep-apnea-ghl.zip
+          draft: false
+          prerelease: false

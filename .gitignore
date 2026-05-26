@@ -1,0 +1,5 @@
+node_modules/
+build/
+*.zip
+.DS_Store
+# vendor/ is intentionally committed — it ships inside the plugin ZIP

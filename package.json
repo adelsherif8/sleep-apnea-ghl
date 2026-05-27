@@ -1,6 +1,6 @@
 {
   "name": "sleep-apnea-ghl",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "WordPress plugin: Sleep Apnea Estimator + GoHighLevel integration",
   "scripts": {
     "release": "node release.js"

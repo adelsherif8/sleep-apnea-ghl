@@ -6,33 +6,65 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 $brand   = $s['brand_name']   ?? 'Riverwalk Dentistry';
 $city    = $s['brand_city']   ?? 'Waterloo';
-$booking = $s['result_book_url']      ?: ( $s['success_redirect_url'] ?? '' );
-$ins_url = $s['result_insurance_url'] ?? '';
+$booking   = $s['result_book_url']      ?: ( $s['success_redirect_url'] ?? '' );
+$ins_url   = $s['result_insurance_url'] ?? '';
+$brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
 ?>
 <div class="sapn-app bg-background min-h-screen text-foreground" data-sapn-redirect="<?= esc_attr( $redirect ) ?>">
   <style>
-    /* ── Scope the theme tokens to .sapn-app so the WP theme can't override them ── */
+    /* ── Inherit the host site's design tokens.
+       The site defines colors as HSL triplets on :root (e.g. --primary: 155 30% 30%)
+       and uses them as hsl(var(--primary)). We bridge those triplets into our own
+       scoped vars via a non-circular trick: copy the site's triplet to a private
+       --__sapn_* var on :root (no cycle there), then redefine the form's color
+       tokens inside .sapn-app to be hsl() of that bridge var. If the site doesn't
+       define a token, the HSL triplet fallback inside var(..., FALLBACK) is used —
+       so the form still looks like a sage-green sleep-medicine form on a vanilla
+       theme. ── */
+    :root{
+      --__sapn_background:           var(--background, 40 30% 98%);
+      --__sapn_foreground:           var(--foreground, 160 10% 25%);
+      --__sapn_card:                 var(--card, 60 20% 99%);
+      --__sapn_card_fg:              var(--card-foreground, 160 10% 25%);
+      --__sapn_popover:              var(--popover, 60 20% 99%);
+      --__sapn_popover_fg:           var(--popover-foreground, 160 10% 25%);
+      --__sapn_primary:              var(--primary, 155 30% 30%);
+      --__sapn_primary_fg:           var(--primary-foreground, 60 30% 98%);
+      --__sapn_secondary:            var(--secondary, 130 15% 95%);
+      --__sapn_secondary_fg:         var(--secondary-foreground, 160 15% 30%);
+      --__sapn_muted:                var(--muted, 110 10% 95%);
+      --__sapn_muted_fg:             var(--muted-foreground, 150 5% 50%);
+      --__sapn_accent:               var(--accent, 145 25% 88%);
+      --__sapn_accent_fg:            var(--accent-foreground, 160 15% 28%);
+      --__sapn_border:               var(--border, 130 10% 90%);
+      --__sapn_input:                var(--input, 120 10% 92%);
+      --__sapn_ring:                 var(--ring, 155 30% 30%);
+      --__sapn_destructive:          var(--destructive, 0 75% 55%);
+      --__sapn_destructive_fg:       var(--destructive-foreground, 0 0% 98%);
+    }
     .sapn-app{
       --radius: 1rem;
-      --background: oklch(98.5% 0.008 95);
-      --foreground: oklch(28% 0.02 160);
-      --card: oklch(99.5% 0.004 95);
-      --card-foreground: oklch(28% 0.02 160);
-      --popover: oklch(99.5% 0.004 95);
-      --popover-foreground: oklch(28% 0.02 160);
-      --primary: oklch(50% 0.07 155);
-      --primary-foreground: oklch(98.5% 0.008 95);
-      --secondary: oklch(95% 0.018 130);
-      --secondary-foreground: oklch(32% 0.04 160);
-      --muted: oklch(95% 0.012 110);
-      --muted-foreground: oklch(50% 0.02 150);
-      --accent: oklch(88% 0.045 145);
-      --accent-foreground: oklch(30% 0.05 160);
-      --border: oklch(90% 0.015 130);
-      --input: oklch(92% 0.012 120);
-      --ring: oklch(50% 0.07 155);
-      --shadow-soft: 0 8px 24px -12px oklch(40% 0.05 155/0.18);
-      --shadow-card: 0 2px 12px -4px oklch(40% 0.05 155/0.1);
+      --background:          hsl(var(--__sapn_background));
+      --foreground:          hsl(var(--__sapn_foreground));
+      --card:                hsl(var(--__sapn_card));
+      --card-foreground:     hsl(var(--__sapn_card_fg));
+      --popover:             hsl(var(--__sapn_popover));
+      --popover-foreground:  hsl(var(--__sapn_popover_fg));
+      --primary:             hsl(var(--__sapn_primary));
+      --primary-foreground:  hsl(var(--__sapn_primary_fg));
+      --secondary:           hsl(var(--__sapn_secondary));
+      --secondary-foreground:hsl(var(--__sapn_secondary_fg));
+      --muted:               hsl(var(--__sapn_muted));
+      --muted-foreground:    hsl(var(--__sapn_muted_fg));
+      --accent:              hsl(var(--__sapn_accent));
+      --accent-foreground:   hsl(var(--__sapn_accent_fg));
+      --border:              hsl(var(--__sapn_border));
+      --input:               hsl(var(--__sapn_input));
+      --ring:                hsl(var(--__sapn_ring));
+      --destructive:         hsl(var(--__sapn_destructive));
+      --destructive-foreground: hsl(var(--__sapn_destructive_fg));
+      --shadow-soft: 0 8px 24px -12px hsla(var(--__sapn_primary), 0.18);
+      --shadow-card: 0 2px 12px -4px  hsla(var(--__sapn_primary), 0.10);
       background-color: var(--background);
       color: var(--foreground);
     }
@@ -236,10 +268,10 @@ $ins_url = $s['result_insurance_url'] ?? '';
   <section data-view="intro" class="hidden">
     <header class="top-0 z-10 sticky bg-background/80 backdrop-blur border-border/60 border-b">
       <div class="flex justify-between items-center mx-auto px-5 py-4 max-w-2xl">
-        <button type="button" data-action="go-landing" class="flex items-center gap-2 font-medium text-foreground text-sm">
+        <a href="<?= esc_url( $brand_url ) ?>" class="flex items-center gap-2 font-medium text-foreground text-sm no-underline">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
           <?= esc_html( $brand ) ?>
-        </button>
+        </a>
       </div>
     </header>
     <main class="mx-auto px-5 py-8 sm:py-12 max-w-2xl">
@@ -290,10 +322,10 @@ $ins_url = $s['result_insurance_url'] ?? '';
   <section data-view="form" class="hidden">
     <header class="top-0 z-10 sticky bg-background/80 backdrop-blur border-border/60 border-b">
       <div class="flex justify-between items-center mx-auto px-5 py-4 max-w-2xl">
-        <button type="button" data-action="go-landing" class="flex items-center gap-2 font-medium text-foreground text-sm">
+        <a href="<?= esc_url( $brand_url ) ?>" class="flex items-center gap-2 font-medium text-foreground text-sm no-underline">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
           <?= esc_html( $brand ) ?>
-        </button>
+        </a>
         <span id="sapn-step-label" class="text-muted-foreground text-xs">Step 1 of 7</span>
       </div>
       <div class="bg-secondary w-full h-1"><div id="sapn-progress" class="bg-primary h-full transition-all duration-500 ease-out" style="width:14.28%"></div></div>
@@ -326,10 +358,10 @@ $ins_url = $s['result_insurance_url'] ?? '';
   <section data-view="results" class="hidden">
     <header class="top-0 z-10 sticky bg-background/80 backdrop-blur border-border/60 border-b">
       <div class="flex justify-between items-center mx-auto px-5 py-4 max-w-2xl">
-        <button type="button" data-action="go-landing" class="flex items-center gap-2 font-medium text-foreground text-sm">
+        <a href="<?= esc_url( $brand_url ) ?>" class="flex items-center gap-2 font-medium text-foreground text-sm no-underline">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
           <?= esc_html( $brand ) ?>
-        </button>
+        </a>
         <span class="text-muted-foreground text-xs">Step 7 of 7</span>
       </div>
       <div class="bg-secondary w-full h-1"><div class="bg-primary h-full" style="width:100%"></div></div>

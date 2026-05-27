@@ -6,7 +6,7 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 $brand   = $s['brand_name']   ?? 'Riverwalk Dentistry';
 $city    = $s['brand_city']   ?? 'Waterloo';
-$booking = $s['result_book_url'] ?? '';
+$booking = $s['result_book_url']      ?: ( $s['success_redirect_url'] ?? '' );
 $ins_url = $s['result_insurance_url'] ?? '';
 ?>
 <div class="sapn-app bg-background min-h-screen text-foreground" data-sapn-redirect="<?= esc_attr( $redirect ) ?>">
@@ -352,7 +352,6 @@ $ins_url = $s['result_insurance_url'] ?? '';
   if (!ROOT) return;
   var AJAX      = <?= wp_json_encode( $ajax_url ) ?>;
   var NONCE     = <?= wp_json_encode( $nonce ) ?>;
-  var REDIRECT  = <?= wp_json_encode( $redirect ) ?>;
   var BOOK_LBL  = <?= wp_json_encode( $s['result_book_label'] ) ?>;
   var BOOK_URL  = <?= wp_json_encode( $booking ) ?>;
   var INS_LBL   = <?= wp_json_encode( $s['result_insurance_label'] ) ?>;
@@ -788,13 +787,7 @@ $ins_url = $s['result_insurance_url'] ?? '';
     }).then(function(r){ return r.json(); }).then(function(d){
       if (d && d.success) {
         renderResults();
-        showView('results', function(){
-          state.transitioning = false;
-          // If a Success Redirect URL is set, redirect AFTER the results are visible
-          // — never instead of them. Give the user ~8 seconds and a countdown banner
-          // with a manual "Continue now" button so they have control.
-          if (REDIRECT) startResultsRedirect(REDIRECT, 8);
-        });
+        showView('results', function(){ state.transitioning = false; });
       } else {
         state.transitioning = false;
         renderStep(); // restore the contact form
@@ -870,27 +863,6 @@ $ins_url = $s['result_insurance_url'] ?? '';
     });
   }
 
-  // Append a "Redirecting in N seconds…" banner to the results screen and fire
-  // window.location after the countdown. The user can cancel by clicking elsewhere
-  // (we don't cancel here for simplicity), or jump now via the inline button.
-  function startResultsRedirect(url, seconds) {
-    var remaining = seconds;
-    var banner = document.createElement('div');
-    banner.className = 'sapn-redirect-banner';
-    banner.style.cssText = 'margin-top:1.5rem;padding:14px 16px;border-radius:12px;background:color-mix(in oklab,var(--primary) 8%,transparent);border:1px solid color-mix(in oklab,var(--primary) 25%,transparent);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--foreground);';
-    banner.innerHTML =
-      '<span>Continuing to the next step in <strong data-count>' + remaining + '</strong> seconds…</span>' +
-      '<button type="button" class="sapn-redir-now" style="background:var(--primary);color:var(--primary-foreground);border:0;padding:8px 16px;border-radius:999px;font-weight:500;font-size:13px;cursor:pointer;">Continue now ' + ICONS.arrowRight + '</button>';
-    resultsEl.appendChild(banner);
-    var countEl = banner.querySelector('[data-count]');
-    var btn     = banner.querySelector('.sapn-redir-now');
-    btn.addEventListener('click', function(){ window.location.href = url; });
-    var iv = setInterval(function(){
-      remaining -= 1;
-      if (countEl) countEl.textContent = remaining;
-      if (remaining <= 0) { clearInterval(iv); window.location.href = url; }
-    }, 1000);
-  }
 
   // ── Delegated events ──
   ROOT.addEventListener('click', function(e){

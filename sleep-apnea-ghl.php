@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.13
+ * Version:     1.0.14
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -783,7 +783,7 @@ function sapn_render_settings_tab( $s ) {
 
         <h2>Submission</h2>
         <table class="form-table" role="presentation">
-            <tr><th><label>Success redirect URL (optional)</label></th><td><input type="url" name="<?= SAPN_OPTION ?>[success_redirect_url]" value="<?= esc_attr( $s['success_redirect_url'] ) ?>" class="regular-text" placeholder="https://example.com/thank-you"/><p class="description">If set, users are redirected after submit instead of seeing the in-form results screen.</p></td></tr>
+            <tr><th><label>Success redirect URL (optional)</label></th><td><input type="url" name="<?= SAPN_OPTION ?>[success_redirect_url]" value="<?= esc_attr( $s['success_redirect_url'] ) ?>" class="regular-text" placeholder="https://example.com/thank-you"/><p class="description">If set, the user sees the results screen first; a "Continuing in N seconds…" banner appears underneath with a "Continue now" button, and the form auto-redirects to this URL after ~8 seconds.</p></td></tr>
             <tr><th><label>GHL contact tag</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[lead_tag]" value="<?= esc_attr( $s['lead_tag'] ) ?>" class="regular-text"/></td></tr>
             <tr><th><label>GHL contact source</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[lead_source]" value="<?= esc_attr( $s['lead_source'] ) ?>" class="regular-text"/></td></tr>
             <tr><th><label>Enable honeypot</label></th><td><label><input type="checkbox" name="<?= SAPN_OPTION ?>[spam_honeypot]" value="1" <?= checked( $s['spam_honeypot'], '1', false ) ?>/> Drop submissions where the hidden field is filled.</label></td></tr>

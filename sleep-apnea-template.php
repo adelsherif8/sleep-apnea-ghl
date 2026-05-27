@@ -298,7 +298,7 @@ $ins_url = $s['result_insurance_url'] ?? '';
       </div>
     </header>
     <main class="mx-auto px-5 py-8 sm:py-12 max-w-2xl">
-      <div id="sapn-step" class="view-fade"></div>
+      <div id="sapn-step" class=""></div>
       <div class="flex justify-between items-center mt-8">
         <button type="button" id="sapn-back" data-action="back" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-muted-foreground hover:text-foreground text-sm transition">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
@@ -325,7 +325,7 @@ $ins_url = $s['result_insurance_url'] ?? '';
       <div class="bg-secondary w-full h-1"><div class="bg-primary h-full" style="width:100%"></div></div>
     </header>
     <main class="mx-auto px-5 py-8 sm:py-12 max-w-2xl">
-      <div id="sapn-results" class="view-fade"></div>
+      <div id="sapn-results" class=""></div>
     </main>
   </section>
 

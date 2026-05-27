@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.12
+ * Version:     1.0.13
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -348,21 +348,30 @@ function sapn_ajax_detect_folder_ids() {
     $base    = sapn_ghl_base();
     $loc     = $s['ghl_location_id'];
 
+    // 1. Fetch fields (some accounts inline `folders` in this response)
     $fr = wp_remote_get( "{$base}/locations/{$loc}/customFields", [ 'headers' => $headers, 'timeout' => 15 ] );
     if ( is_wp_error( $fr ) ) wp_send_json_error( $fr->get_error_message() );
+    $code = wp_remote_retrieve_response_code( $fr );
+    if ( $code === 401 || $code === 403 ) wp_send_json_error( 'GHL auth failed (' . sapn_ghl_error( $fr, $code ) . ').' );
     $body = json_decode( wp_remote_retrieve_body( $fr ), true );
 
-    $by_name = [];
-    foreach ( $body['folders'] ?? [] as $folder ) {
-        if ( ! empty( $folder['id'] ) && ! empty( $folder['name'] ) ) {
-            $by_name[ strtolower( trim( $folder['name'] ) ) ] = $folder['id'];
+    // 2. Always hit the dedicated folders endpoint too — many tenants only return folders here
+    $folders_inline = $body['folders'] ?? [];
+    $folders_dedicated = [];
+    $fr2 = wp_remote_get( "{$base}/locations/{$loc}/customFieldsFolders", [ 'headers' => $headers, 'timeout' => 15 ] );
+    if ( ! is_wp_error( $fr2 ) ) {
+        $b2 = json_decode( wp_remote_retrieve_body( $fr2 ), true );
+        if ( is_array( $b2 ) ) {
+            $folders_dedicated = $b2['folders'] ?? ( isset( $b2[0] ) ? $b2 : [] );
         }
     }
-    $parent_ids = [];
-    foreach ( $body['customFields'] ?? [] as $f ) {
-        if ( ! empty( $f['parentId'] ) ) {
-            $bare = strtolower( preg_replace( '/^contact\./', '', $f['fieldKey'] ?? '' ) );
-            $parent_ids[ $f['parentId'] ][] = $bare;
+    $all_folders = array_merge( $folders_inline, $folders_dedicated );
+
+    // 3. Match folders by name (case-/whitespace-insensitive)
+    $by_name = [];
+    foreach ( $all_folders as $folder ) {
+        if ( ! empty( $folder['id'] ) && ! empty( $folder['name'] ) ) {
+            $by_name[ strtolower( trim( $folder['name'] ) ) ] = $folder['id'];
         }
     }
     $matched = [];
@@ -370,16 +379,58 @@ function sapn_ajax_detect_folder_ids() {
         $key = strtolower( $name );
         if ( isset( $by_name[ $key ] ) ) $matched[ $name ] = $by_name[ $key ];
     }
+
+    // 4. Fallback: deduce folder IDs from the parentId of existing fields. This kicks in when
+    //    folder names aren't available via either endpoint, but the user has dropped checker /
+    //    plugin fields into the folders.
+    $parent_ids = []; // folder_id => [ field_keys ]
+    foreach ( $body['customFields'] ?? [] as $f ) {
+        if ( empty( $f['parentId'] ) ) continue;
+        $bare = strtolower( preg_replace( '/^contact\./', '', $f['fieldKey'] ?? '' ) );
+        $parent_ids[ $f['parentId'] ][] = $bare;
+    }
+
+    // 5. Score each parent folder against each target folder. Checker fields → 999 (guaranteed win).
+    $checker_for_folder = []; // folder name => checker fieldKey
+    foreach ( sapn_checker_fields() as $ck => $folder_name ) {
+        $checker_for_folder[ $folder_name ] = strtolower( $ck );
+    }
+    $group_keys = []; // folder name => [ expected field keys (lowercased) ]
+    foreach ( sapn_ghl_field_definitions() as $folder_name => $fields ) {
+        $group_keys[ $folder_name ] = array_map( fn( $f ) => strtolower( $f['key'] ), $fields );
+    }
+
+    $best = []; // folder name => [ id, score ]
+    foreach ( $parent_ids as $pid => $keys ) {
+        $top_name = null; $top_score = 0;
+        foreach ( $group_keys as $folder_name => $expected ) {
+            if ( ! empty( $checker_for_folder[ $folder_name ] ) && in_array( $checker_for_folder[ $folder_name ], $keys, true ) ) {
+                $score = 999;
+            } else {
+                $score = count( array_intersect( $expected, $keys ) );
+            }
+            if ( $score > $top_score ) { $top_score = $score; $top_name = $folder_name; }
+        }
+        if ( $top_name && $top_score > 0 && $top_score > ( $best[ $top_name ]['score'] ?? 0 ) ) {
+            $best[ $top_name ] = [ 'id' => $pid, 'score' => $top_score ];
+        }
+    }
+    foreach ( $best as $folder_name => $info ) {
+        if ( ! isset( $matched[ $folder_name ] ) ) {
+            $matched[ $folder_name ] = $info['id'];
+        }
+    }
+
     $stored = sapn_get_folder_ids( $loc );
     if ( ! empty( $matched ) ) {
         $stored = array_merge( $stored, $matched );
         update_option( 'sapn_folder_ids_' . md5( $loc ), $stored );
     }
     wp_send_json_success( [
-        'detected'   => $parent_ids,
-        'by_name'    => $matched,
-        'stored'     => $stored,
-        'raw_folders'=> $body['folders'] ?? [],
+        'detected'    => $parent_ids,
+        'by_name'     => $matched,
+        'stored'      => $stored,
+        'raw_folders' => $all_folders,
     ] );
 }
 

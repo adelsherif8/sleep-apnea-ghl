@@ -619,7 +619,6 @@ $ins_url = $s['result_insurance_url'] ?? '';
     else if (qd.type === 'multi') html = renderMulti(qd);
     else if (qd.type === 'contact') html = renderContact(qd);
     stepEl.innerHTML = html;
-    stepEl.classList.remove('view-fade'); void stepEl.offsetWidth; stepEl.classList.add('view-fade');
     updateHeader();
     if (qd.type === 'contact') wireContactForm();
   }
@@ -846,7 +845,13 @@ $ins_url = $s['result_insurance_url'] ?? '';
     stepEl.innerHTML = renderLoaderHtml('Loading your estimator');
     state.transitioning = true;
     showView('form', function(){
-      setTimeout(function(){ renderStep(); state.transitioning = false; }, 900);
+      setTimeout(function(){
+        animOut(stepEl, function(){
+          renderStep();
+          animIn(stepEl);
+          state.transitioning = false;
+        });
+      }, 900);
     });
   }
 

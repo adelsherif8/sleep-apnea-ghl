@@ -691,7 +691,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     var subMin = lines.reduce(function(s,l){ return s + l.range[0]; }, 0);
     var subMax = lines.reduce(function(s,l){ return s + l.range[1]; }, 0);
     var linesHtml = lines.map(function(l){
-      return '<li class="flex justify-between items-start gap-4 px-4 py-3"><div><p class="font-medium text-foreground text-sm">' + l.name + '</p>' + (l.sub ? '<p class="text-muted-foreground text-xs">' + l.sub + '</p>' : '') + '</div><p class="font-medium tabular-nums text-foreground text-sm">' + fmtMoney(l.range[0]) + '–' + fmtMoney(l.range[1]) + '</p></li>';
+      return '<li class="flex justify-between items-start gap-4 px-5 py-3.5"><div class="flex-1 min-w-0"><p class="font-medium text-foreground text-sm leading-snug">' + l.name + '</p>' + (l.sub ? '<p class="mt-0.5 text-muted-foreground text-xs leading-snug">' + l.sub + '</p>' : '') + '</div><p class="flex-none font-medium tabular-nums text-foreground text-sm leading-snug">' + fmtMoney(l.range[0]) + '–' + fmtMoney(l.range[1]) + '</p></li>';
     }).join('');
 
     var bookBtn = BOOK_URL
@@ -730,10 +730,10 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
         '<div class="p-6 sm:p-8">' +
           '<h3 class="font-semibold text-foreground text-lg sm:text-xl tracking-tight">Your answers suggest a custom oral appliance may be worth exploring.</h3>' +
           '<p class="mt-2 text-muted-foreground text-sm leading-relaxed">This may include a custom-fitted sleep appliance, fitting, calibration, and follow-up care depending on your final treatment plan.</p>' +
-          '<div class="bg-background/60 mt-5 border border-border rounded-2xl">' +
-            '<p class="px-4 py-2.5 border-border/60 border-b font-medium text-muted-foreground text-xs uppercase tracking-wide">What your estimate may include</p>' +
+          '<div class="bg-background/60 mt-5 border border-border rounded-2xl overflow-hidden">' +
+            '<p class="px-5 py-3 bg-secondary/40 border-border/60 border-b font-semibold text-muted-foreground text-[11px] uppercase tracking-[.08em]">What your estimate may include</p>' +
             '<ul class="divide-y divide-border/60">' + linesHtml +
-              '<li class="flex justify-between items-center bg-secondary/40 px-4 py-3"><p class="font-medium text-muted-foreground text-xs uppercase tracking-wide">Subtotal range</p><p class="font-semibold tabular-nums text-foreground text-sm">' + fmtMoney(subMin) + '–' + fmtMoney(subMax) + '</p></li>' +
+              '<li class="flex justify-between items-center bg-secondary/60 px-5 py-3.5 border-border/60 border-t"><p class="font-semibold text-foreground text-[11px] uppercase tracking-[.08em]">Subtotal range</p><p class="font-semibold tabular-nums text-foreground text-sm">' + fmtMoney(subMin) + '–' + fmtMoney(subMax) + '</p></li>' +
             '</ul>' +
           '</div>' +
           bulletsHtml +

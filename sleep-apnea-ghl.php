@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.18
+ * Version:     1.0.19
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -47,6 +47,17 @@ function sapn_create_entries_table() {
 add_action( 'plugins_loaded', function () {
     if ( get_option( 'sapn_entries_db_version' ) !== SAPN_ENTRIES_DB_VER ) {
         sapn_create_entries_table();
+    }
+    // One-time migration: rename the old CTA defaults to the new ones for existing
+    // installs that pre-date v1.0.16. wp_parse_args only fills missing keys, so the
+    // old saved values would otherwise persist forever.
+    if ( ! get_option( 'sapn_mig_cta_labels_v1' ) ) {
+        $s = get_option( SAPN_OPTION, [] );
+        $changed = false;
+        if ( ( $s['result_book_label']      ?? '' ) === 'Book My Sleep Consultation' ) { $s['result_book_label']      = 'Submit Estimate'; $changed = true; }
+        if ( ( $s['result_insurance_label'] ?? '' ) === 'Ask About Insurance Coverage' ) { $s['result_insurance_label'] = 'Contact Us';      $changed = true; }
+        if ( $changed ) update_option( SAPN_OPTION, $s );
+        update_option( 'sapn_mig_cta_labels_v1', '1' );
     }
 }, 20 );
 

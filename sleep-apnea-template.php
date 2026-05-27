@@ -88,12 +88,22 @@ $ins_url = $s['result_insurance_url'] ?? '';
     .sapn-app [data-view].view-leaving{opacity:0;transform:translateY(-6px);pointer-events:none;}
     .sapn-app [data-view].view-entering{opacity:0;transform:translateY(10px);}
 
-    /* Neutralise the theme's .entry-content margin without killing Tailwind mt-* / mb-* utilities.
-       We zero margins on the base elements, then re-declare the actual mt-* / mb-* values
-       below with !important so they win the cascade. */
-    .sapn-app p,.sapn-app h1,.sapn-app h2,.sapn-app h3,.sapn-app h4,.sapn-app h5,.sapn-app h6,
-    .sapn-app ul,.sapn-app ol,.sapn-app li{margin:0;padding:0;}
-    .sapn-app ul,.sapn-app ol{list-style:none;padding-left:0;}
+    /* Scoped Tailwind preflight bits we still need (without leaking to the page):
+       - border-style: solid so divide-y / border-t / border draws (otherwise 'border-width: 1px'
+         on a default border-style:none element renders nothing — the divider lines vanish).
+       - box-sizing: border-box so widths/paddings behave the way the layout expects. */
+    .sapn-app, .sapn-app *, .sapn-app ::before, .sapn-app ::after {
+      box-sizing: border-box;
+      border-style: solid;
+      border-width: 0;
+    }
+    /* Neutralise the theme's .entry-content paragraph spacing without killing Tailwind mt-* / mb-*
+       utilities. We zero margins on the base elements (no !important, so utility classes still
+       win), then re-declare the actual mt-* / mb-* values below with !important to beat themes
+       that DO use !important. Padding is NOT reset on li — Tailwind's px-* / py-* handle that. */
+    .sapn-app p,.sapn-app h1,.sapn-app h2,.sapn-app h3,.sapn-app h4,.sapn-app h5,.sapn-app h6{margin:0;padding:0;}
+    .sapn-app ul,.sapn-app ol{margin:0;padding-left:0;list-style:none;}
+    .sapn-app li{margin:0;}
     .sapn-app .mt-1{margin-top:.25rem!important;} .sapn-app .mt-1\.5{margin-top:.375rem!important;}
     .sapn-app .mt-2{margin-top:.5rem!important;} .sapn-app .mt-2\.5{margin-top:.625rem!important;}
     .sapn-app .mt-3{margin-top:.75rem!important;} .sapn-app .mt-4{margin-top:1rem!important;}

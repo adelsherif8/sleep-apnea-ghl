@@ -11,6 +11,64 @@ $ins_url = $s['result_insurance_url'] ?? '';
 ?>
 <div class="sapn-app bg-background min-h-screen text-foreground" data-sapn-redirect="<?= esc_attr( $redirect ) ?>">
   <style>
+    /* ── Scope the theme tokens to .sapn-app so the WP theme can't override them ── */
+    .sapn-app{
+      --radius: 1rem;
+      --background: oklch(98.5% 0.008 95);
+      --foreground: oklch(28% 0.02 160);
+      --card: oklch(99.5% 0.004 95);
+      --card-foreground: oklch(28% 0.02 160);
+      --popover: oklch(99.5% 0.004 95);
+      --popover-foreground: oklch(28% 0.02 160);
+      --primary: oklch(50% 0.07 155);
+      --primary-foreground: oklch(98.5% 0.008 95);
+      --secondary: oklch(95% 0.018 130);
+      --secondary-foreground: oklch(32% 0.04 160);
+      --muted: oklch(95% 0.012 110);
+      --muted-foreground: oklch(50% 0.02 150);
+      --accent: oklch(88% 0.045 145);
+      --accent-foreground: oklch(30% 0.05 160);
+      --border: oklch(90% 0.015 130);
+      --input: oklch(92% 0.012 120);
+      --ring: oklch(50% 0.07 155);
+      --shadow-soft: 0 8px 24px -12px oklch(40% 0.05 155/0.18);
+      --shadow-card: 0 2px 12px -4px oklch(40% 0.05 155/0.1);
+      background-color: var(--background);
+      color: var(--foreground);
+    }
+    /* ── Beat the WP theme on the handful of color utilities the form relies on ── */
+    .sapn-app .text-primary{color:var(--primary)!important;}
+    .sapn-app .text-primary-foreground{color:var(--primary-foreground)!important;}
+    .sapn-app .text-foreground{color:var(--foreground)!important;}
+    .sapn-app .text-muted-foreground{color:var(--muted-foreground)!important;}
+    .sapn-app .text-red-600{color:#dc2626!important;}
+    .sapn-app .bg-background{background-color:var(--background)!important;}
+    .sapn-app .bg-card{background-color:var(--card)!important;}
+    .sapn-app .bg-card\/60{background-color:color-mix(in oklab,var(--card) 60%,transparent)!important;}
+    .sapn-app .bg-primary{background-color:var(--primary)!important;}
+    .sapn-app .bg-primary\/15{background-color:color-mix(in oklab,var(--primary) 15%,transparent)!important;}
+    .sapn-app .bg-primary\/20{background-color:color-mix(in oklab,var(--primary) 20%,transparent)!important;}
+    .sapn-app .bg-primary\/95{background-color:color-mix(in oklab,var(--primary) 95%,transparent)!important;}
+    .sapn-app .bg-secondary{background-color:var(--secondary)!important;}
+    .sapn-app .bg-secondary\/40{background-color:color-mix(in oklab,var(--secondary) 40%,transparent)!important;}
+    .sapn-app .bg-accent\/20{background-color:color-mix(in oklab,var(--accent) 20%,transparent)!important;}
+    .sapn-app .bg-accent\/30{background-color:color-mix(in oklab,var(--accent) 30%,transparent)!important;}
+    .sapn-app .bg-accent\/50{background-color:color-mix(in oklab,var(--accent) 50%,transparent)!important;}
+    .sapn-app .bg-accent\/60{background-color:color-mix(in oklab,var(--accent) 60%,transparent)!important;}
+    .sapn-app .bg-background\/60{background-color:color-mix(in oklab,var(--background) 60%,transparent)!important;}
+    .sapn-app .bg-background\/80{background-color:color-mix(in oklab,var(--background) 80%,transparent)!important;}
+    .sapn-app .border-border{border-color:var(--border)!important;}
+    .sapn-app .border-border\/60{border-color:color-mix(in oklab,var(--border) 60%,transparent)!important;}
+    .sapn-app .border-primary{border-color:var(--primary)!important;}
+    .sapn-app .border-primary\/20{border-color:color-mix(in oklab,var(--primary) 20%,transparent)!important;}
+    .sapn-app .border-input{border-color:var(--input)!important;}
+    .sapn-app .hover\:border-primary\/40:hover{border-color:color-mix(in oklab,var(--primary) 40%,transparent)!important;}
+    .sapn-app .focus\:border-primary:focus{border-color:var(--primary)!important;}
+    .sapn-app .divide-border\/60 > * + *{border-color:color-mix(in oklab,var(--border) 60%,transparent)!important;}
+    /* SVGs use stroke="currentColor" — make sure nothing forces a different stroke */
+    .sapn-app svg{stroke:currentColor;color:currentColor;}
+    .sapn-app .text-primary svg,.sapn-app svg.text-primary{color:var(--primary)!important;stroke:var(--primary)!important;}
+
     .sapn-app .rw-loader-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4.5rem 0 5rem;}
     .sapn-app .rw-loader-mark{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:999px;background:color-mix(in oklab,var(--accent) 60%,transparent);color:var(--primary);animation:rw-pulse 1.6s ease-in-out infinite;}
     @keyframes rw-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.94);opacity:.78}}

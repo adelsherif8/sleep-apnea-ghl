@@ -87,6 +87,12 @@ $ins_url = $s['result_insurance_url'] ?? '';
     .sapn-app [data-view]{transition:opacity 320ms ease, transform 320ms ease;}
     .sapn-app [data-view].view-leaving{opacity:0;transform:translateY(-6px);pointer-events:none;}
     .sapn-app [data-view].view-entering{opacity:0;transform:translateY(10px);}
+
+    /* Reset the theme's .entry-content paragraph & list spacing for the form only.
+       The form positions its own text with Tailwind mt-* / mb-* utilities. */
+    .sapn-app p,.sapn-app h1,.sapn-app h2,.sapn-app h3,.sapn-app h4,.sapn-app h5,.sapn-app h6,
+    .sapn-app ul,.sapn-app ol,.sapn-app li{margin:0!important;padding:0!important;}
+    .sapn-app ul,.sapn-app ol{list-style:none!important;}
   </style>
 
   <!-- LANDING -->
@@ -104,6 +110,80 @@ $ins_url = $s['result_insurance_url'] ?? '';
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
         </button>
         <p class="mt-3 text-muted-foreground text-xs">Custom sleep appliances, snoring support, and airway-focused care in <?= esc_html( $city ) ?></p>
+      </section>
+
+      <!-- Trust cards -->
+      <section class="gap-4 grid sm:grid-cols-3 mx-auto mt-16 px-5 max-w-4xl">
+        <div class="bg-card shadow-[var(--shadow-card)] p-5 border border-border rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          <p class="mt-3 font-medium text-foreground">Not a diagnosis</p>
+          <p class="mt-1 text-muted-foreground text-sm leading-relaxed">Our estimator is educational. Final recommendations come after a clinical evaluation.</p>
+        </div>
+        <div class="bg-card shadow-[var(--shadow-card)] p-5 border border-border rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+          <p class="mt-3 font-medium text-foreground">Travel-friendly</p>
+          <p class="mt-1 text-muted-foreground text-sm leading-relaxed">Custom appliances are quiet, compact, and easy to take with you.</p>
+        </div>
+        <div class="bg-card shadow-[var(--shadow-card)] p-5 border border-border rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>
+          <p class="mt-3 font-medium text-foreground">Patient-led care</p>
+          <p class="mt-1 text-muted-foreground text-sm leading-relaxed">We meet you where you are — no pressure, just honest guidance.</p>
+        </div>
+      </section>
+
+      <!-- What we help with -->
+      <section class="mx-auto mt-20 px-5 max-w-4xl">
+        <h2 class="font-semibold text-2xl sm:text-3xl text-center tracking-tight">What we help with</h2>
+        <div class="gap-3 grid sm:grid-cols-2 mt-8">
+          <div class="flex gap-4 bg-card p-5 border border-border rounded-2xl">
+            <span class="flex flex-none justify-center items-center bg-accent/60 rounded-xl w-10 h-10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>
+            </span>
+            <div>
+              <p class="font-medium">Snoring</p>
+              <p class="mt-1 text-muted-foreground text-sm leading-relaxed">For you — and the partner trying to sleep next to you.</p>
+            </div>
+          </div>
+          <div class="flex gap-4 bg-card p-5 border border-border rounded-2xl">
+            <span class="flex flex-none justify-center items-center bg-accent/60 rounded-xl w-10 h-10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>
+            </span>
+            <div>
+              <p class="font-medium">CPAP intolerance</p>
+              <p class="mt-1 text-muted-foreground text-sm leading-relaxed">Quieter, smaller, custom-fit alternatives when CPAP isn't working.</p>
+            </div>
+          </div>
+          <div class="flex gap-4 bg-card p-5 border border-border rounded-2xl">
+            <span class="flex flex-none justify-center items-center bg-accent/60 rounded-xl w-10 h-10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+            </span>
+            <div>
+              <p class="font-medium">Sleep apnea</p>
+              <p class="mt-1 text-muted-foreground text-sm leading-relaxed">Oral appliance therapy for appropriate mild and moderate cases.</p>
+            </div>
+          </div>
+          <div class="flex gap-4 bg-card p-5 border border-border rounded-2xl">
+            <span class="flex flex-none justify-center items-center bg-accent/60 rounded-xl w-10 h-10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
+            </span>
+            <div>
+              <p class="font-medium">Airway-focused care</p>
+              <p class="mt-1 text-muted-foreground text-sm leading-relaxed">Myofunctional support for breathing, posture, and oral habits.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Curious where you'd start? -->
+      <section class="mx-auto mt-20 px-5 max-w-2xl text-center">
+        <div class="bg-card shadow-[var(--shadow-soft)] p-8 border border-primary/20 rounded-3xl">
+          <h2 class="font-semibold text-2xl tracking-tight">Curious where you'd start?</h2>
+          <p class="mt-3 text-muted-foreground text-sm leading-relaxed">Answer a few quick questions and we'll suggest a treatment path and estimated investment range. About 60 seconds.</p>
+          <button type="button" data-action="go-intro" class="inline-flex justify-center items-center gap-2 bg-primary hover:opacity-95 mt-6 px-6 py-3.5 rounded-full font-medium text-primary-foreground text-sm">
+            Start My Estimate
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </div>
       </section>
     </main>
   </section>

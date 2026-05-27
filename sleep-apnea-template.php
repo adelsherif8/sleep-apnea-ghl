@@ -93,6 +93,17 @@ $ins_url = $s['result_insurance_url'] ?? '';
     .sapn-app p,.sapn-app h1,.sapn-app h2,.sapn-app h3,.sapn-app h4,.sapn-app h5,.sapn-app h6,
     .sapn-app ul,.sapn-app ol,.sapn-app li{margin:0!important;padding:0!important;}
     .sapn-app ul,.sapn-app ol{list-style:none!important;}
+
+    /* Tailwind arbitrary-value & gradient utilities that may have been
+       dropped from the JIT compile — force them on the locked estimate card. */
+    .sapn-app .blur-\[6px\]{filter:blur(6px)!important;}
+    .sapn-app .select-none{user-select:none!important;}
+    .sapn-app .bg-gradient-to-b.from-background\/40.to-background\/80{
+      background-image:linear-gradient(to bottom,
+        color-mix(in oklab,var(--background) 40%,transparent),
+        color-mix(in oklab,var(--background) 80%,transparent))!important;
+    }
+    .sapn-app .pointer-events-none{pointer-events:none!important;}
   </style>
 
   <!-- LANDING -->
@@ -534,7 +545,7 @@ $ins_url = $s['result_insurance_url'] ?? '';
           '<p class="mt-2 text-muted-foreground text-xs">Sleep consultation · Custom oral appliance · Follow-up care</p>' +
         '</div>' +
         '<div class="absolute inset-0 flex justify-center items-center bg-gradient-to-b from-background/40 to-background/80 pointer-events-none">' +
-          '<span class="inline-flex items-center gap-1.5 bg-primary/95 shadow-[var(--shadow-soft)] px-3 py-1.5 rounded-full font-medium text-primary-foreground text-xs">Unlock below</span>' +
+          '<span class="inline-flex items-center gap-1.5 bg-primary/95 shadow-[var(--shadow-soft)] px-3 py-1.5 rounded-full font-medium text-primary-foreground text-xs">' + ICONS.shield.replace('w-4 h-4','w-3.5 h-3.5') + 'Unlock below</span>' +
         '</div>' +
       '</div>' +
       '<div class="gap-4 grid bg-card shadow-[var(--shadow-card)] p-5 border border-border rounded-2xl">' +

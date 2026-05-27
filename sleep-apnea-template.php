@@ -88,11 +88,34 @@ $ins_url = $s['result_insurance_url'] ?? '';
     .sapn-app [data-view].view-leaving{opacity:0;transform:translateY(-6px);pointer-events:none;}
     .sapn-app [data-view].view-entering{opacity:0;transform:translateY(10px);}
 
-    /* Reset the theme's .entry-content paragraph & list spacing for the form only.
-       The form positions its own text with Tailwind mt-* / mb-* utilities. */
+    /* Neutralise the theme's .entry-content margin without killing Tailwind mt-* / mb-* utilities.
+       We zero margins on the base elements, then re-declare the actual mt-* / mb-* values
+       below with !important so they win the cascade. */
     .sapn-app p,.sapn-app h1,.sapn-app h2,.sapn-app h3,.sapn-app h4,.sapn-app h5,.sapn-app h6,
-    .sapn-app ul,.sapn-app ol,.sapn-app li{margin:0!important;padding:0!important;}
-    .sapn-app ul,.sapn-app ol{list-style:none!important;}
+    .sapn-app ul,.sapn-app ol,.sapn-app li{margin:0;padding:0;}
+    .sapn-app ul,.sapn-app ol{list-style:none;padding-left:0;}
+    .sapn-app .mt-1{margin-top:.25rem!important;} .sapn-app .mt-1\.5{margin-top:.375rem!important;}
+    .sapn-app .mt-2{margin-top:.5rem!important;} .sapn-app .mt-2\.5{margin-top:.625rem!important;}
+    .sapn-app .mt-3{margin-top:.75rem!important;} .sapn-app .mt-4{margin-top:1rem!important;}
+    .sapn-app .mt-5{margin-top:1.25rem!important;} .sapn-app .mt-6{margin-top:1.5rem!important;}
+    .sapn-app .mt-8{margin-top:2rem!important;} .sapn-app .mt-12{margin-top:3rem!important;}
+    .sapn-app .mt-16{margin-top:4rem!important;} .sapn-app .mt-20{margin-top:5rem!important;}
+    .sapn-app .mb-1{margin-bottom:.25rem!important;} .sapn-app .mb-1\.5{margin-bottom:.375rem!important;}
+    .sapn-app .mb-4{margin-bottom:1rem!important;} .sapn-app .mb-6{margin-bottom:1.5rem!important;}
+    .sapn-app .my-1{margin-top:.25rem!important;margin-bottom:.25rem!important;}
+
+    /* Smooth selection + step transitions */
+    .sapn-app .opt-selected{transition:background-color 200ms ease,border-color 200ms ease,box-shadow 200ms ease;}
+    .sapn-app .opt-selected .opt-radio{animation:rw-pop 340ms cubic-bezier(.34,1.56,.64,1) both;}
+    .sapn-app .opt-selected .opt-icon-wrap{transition:background-color 200ms ease,color 200ms ease;}
+    .sapn-app .opt-selected .opt-check svg{animation:rw-check-in 320ms cubic-bezier(.34,1.56,.64,1) both;}
+    @keyframes rw-pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.15);opacity:1;}100%{transform:scale(1);opacity:1;}}
+    @keyframes rw-check-in{0%{transform:scale(0);opacity:0;}60%{transform:scale(1.2);opacity:1;}100%{transform:scale(1);opacity:1;}}
+
+    .sapn-app .step-leaving{animation:rw-step-out 220ms ease both;}
+    .sapn-app .step-entering{animation:rw-step-in 320ms cubic-bezier(.2,.65,.3,1) both;}
+    @keyframes rw-step-out{from{opacity:1;transform:translateY(0);filter:blur(0);}to{opacity:0;transform:translateY(-6px);filter:blur(2px);}}
+    @keyframes rw-step-in{from{opacity:0;transform:translateY(10px);filter:blur(2px);}to{opacity:1;transform:translateY(0);filter:blur(0);}}
 
     /* Tailwind arbitrary-value & gradient utilities that may have been
        dropped from the JIT compile — force them on the locked estimate card. */
@@ -434,14 +457,41 @@ $ins_url = $s['result_insurance_url'] ?? '';
     return '<div class="rw-loader-wrap"><div class="rw-loader-mark">' + ICONS.leaf + '</div><p class="rw-loader-text">' + text + '…</p><div class="rw-loader-track" role="progressbar" aria-label="Loading"></div></div>';
   }
 
+  function animOut(el, cb) {
+    el.classList.remove('step-entering');
+    el.classList.add('step-leaving');
+    setTimeout(function(){
+      el.classList.remove('step-leaving');
+      if (cb) cb();
+    }, 220);
+  }
+  function animIn(el) {
+    el.classList.remove('step-entering');
+    void el.offsetWidth;
+    el.classList.add('step-entering');
+    setTimeout(function(){ el.classList.remove('step-entering'); }, 320);
+  }
+
   function loadInForm(destIdx, text, after, delay) {
     if (state.transitioning) return;
     state.transitioning = true;
-    stepEl.innerHTML = renderLoaderHtml(text);
-    setTimeout(function(){
-      if (destIdx !== null && destIdx !== undefined) state.currentStep = destIdx;
-      try { if (after) after(); } finally { state.transitioning = false; }
-    }, delay || 1000);
+    // 1. Fade the current step out
+    animOut(stepEl, function(){
+      // 2. Swap to loader and fade it in
+      stepEl.innerHTML = renderLoaderHtml(text);
+      animIn(stepEl);
+      // 3. Hold the loader for `delay`, then fade it out
+      setTimeout(function(){
+        animOut(stepEl, function(){
+          // 4. Render the destination step and fade it in
+          if (destIdx !== null && destIdx !== undefined) state.currentStep = destIdx;
+          try { if (after) after(); } finally {
+            animIn(stepEl);
+            state.transitioning = false;
+          }
+        });
+      }, delay || 800);
+    });
   }
 
   function fmtMoney(n){ return '$' + n.toLocaleString('en-US'); }
@@ -753,8 +803,14 @@ $ins_url = $s['result_insurance_url'] ?? '';
   function selectSingle(value) {
     var qd = QUESTIONS[state.currentStep];
     state.answers[qd.id] = value;
-    if (qd.autoAdvance) advance();
-    else renderStep();
+    if (qd.autoAdvance) {
+      // Render the selected state so the user sees their option animate in
+      // (radio fills with a pop + check), then transition to the loader.
+      renderStep();
+      setTimeout(advance, 380);
+    } else {
+      renderStep();
+    }
   }
   function selectMulti(value, exclusive) {
     var qd = QUESTIONS[state.currentStep];

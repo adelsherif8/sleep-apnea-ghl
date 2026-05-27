@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.6
+ * Version:     1.0.7
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -105,7 +105,8 @@ function sapn_defaults() {
         'spam_honeypot'          => '1',
 
         // Hide the site header / footer on pages where the form is shown
-        'hide_chrome'            => '0',
+        'hide_header'            => '0',
+        'hide_footer'            => '0',
     ];
 }
 
@@ -705,10 +706,11 @@ function sapn_render_settings_tab( $s ) {
             <tr><th><label>GHL contact source</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[lead_source]" value="<?= esc_attr( $s['lead_source'] ) ?>" class="regular-text"/></td></tr>
             <tr><th><label>Enable honeypot</label></th><td><label><input type="checkbox" name="<?= SAPN_OPTION ?>[spam_honeypot]" value="1" <?= checked( $s['spam_honeypot'], '1', false ) ?>/> Drop submissions where the hidden field is filled.</label></td></tr>
             <tr>
-                <th><label>Hide site header &amp; footer</label></th>
+                <th><label>Hide site chrome</label></th>
                 <td>
-                    <label><input type="checkbox" name="<?= SAPN_OPTION ?>[hide_chrome]" value="1" <?= checked( $s['hide_chrome'], '1', false ) ?>/> Hide the WordPress theme's header &amp; footer on pages where this form is embedded — for a clean landing-page look.</label>
-                    <p class="description">You can also set this per-shortcode: <code>[sleep_apnea_form hide_chrome="1"]</code> (or <code>"0"</code> to keep the chrome on that page).</p>
+                    <label><input type="checkbox" name="<?= SAPN_OPTION ?>[hide_header]" value="1" <?= checked( $s['hide_header'], '1', false ) ?>/> Hide the WordPress theme's <strong>header</strong> on pages with this form.</label><br>
+                    <label><input type="checkbox" name="<?= SAPN_OPTION ?>[hide_footer]" value="1" <?= checked( $s['hide_footer'], '1', false ) ?>/> Hide the WordPress theme's <strong>footer</strong> on pages with this form.</label>
+                    <p class="description">Per-shortcode override: <code>[sleep_apnea_form hide_header="1" hide_footer="0"]</code></p>
                 </td>
             </tr>
         </table>
@@ -1193,36 +1195,46 @@ function sapn_enqueue_estimator_assets() {
 add_shortcode( 'sleep_apnea_form', 'sapn_shortcode' );
 
 function sapn_shortcode( $atts ) {
-    $atts = shortcode_atts( [ 'hide_chrome' => null ], $atts, 'sleep_apnea_form' );
+    $atts = shortcode_atts( [ 'hide_header' => null, 'hide_footer' => null, 'hide_chrome' => null ], $atts, 'sleep_apnea_form' );
     sapn_enqueue_estimator_assets();
     $s         = sapn_get();
     $nonce     = wp_create_nonce( 'sapn_submit' );
     $ajax_url  = admin_url( 'admin-ajax.php' );
     $redirect  = $s['success_redirect_url'];
 
-    // Resolve hide_chrome: shortcode attribute takes precedence over the global setting.
-    $hide_chrome = $atts['hide_chrome'] === null
-        ? ( $s['hide_chrome'] === '1' )
-        : in_array( strtolower( (string) $atts['hide_chrome'] ), [ '1', 'true', 'yes', 'on' ], true );
+    $truthy = function( $v ) {
+        return in_array( strtolower( (string) $v ), [ '1', 'true', 'yes', 'on' ], true );
+    };
+    // hide_chrome is a legacy shortcut that toggles both header and footer.
+    $chrome_attr = $atts['hide_chrome'] !== null ? $truthy( $atts['hide_chrome'] ) : null;
+    $hide_header = $atts['hide_header'] !== null
+        ? $truthy( $atts['hide_header'] )
+        : ( $chrome_attr !== null ? $chrome_attr : ( $s['hide_header'] === '1' ) );
+    $hide_footer = $atts['hide_footer'] !== null
+        ? $truthy( $atts['hide_footer'] )
+        : ( $chrome_attr !== null ? $chrome_attr : ( $s['hide_footer'] === '1' ) );
 
     ob_start();
-    if ( $hide_chrome ) {
-        echo '<style id="sapn-hide-chrome">'
-            // Cover common WP / theme / page-builder header & footer selectors.
-            . 'body > header,body > footer,'
-            . '#masthead,#colophon,'
-            . '.site-header,.site-footer,'
-            . 'header.site-header,footer.site-footer,'
-            . 'header[role="banner"],footer[role="contentinfo"],'
-            . '.wp-site-blocks > header,.wp-site-blocks > footer,'
-            . '.elementor-location-header,.elementor-location-footer,'
-            . '.e-con-header,.e-con-footer,'
-            . '.fl-page-header,.fl-page-footer,'
-            . '.et_builder_inner_content > header,.et_builder_inner_content > footer,'
-            . '#wpadminbar'
-            . '{display:none!important;}'
-            . 'html{margin-top:0!important;}'
-            . 'body{padding-top:0!important;}'
+    if ( $hide_header || $hide_footer ) {
+        $sels = [];
+        if ( $hide_header ) {
+            $sels = array_merge( $sels, [
+                'body > header','#masthead','.site-header','header.site-header',
+                'header[role="banner"]','.wp-site-blocks > header',
+                '.elementor-location-header','.e-con-header','.fl-page-header',
+                '.et_builder_inner_content > header','#wpadminbar',
+            ] );
+        }
+        if ( $hide_footer ) {
+            $sels = array_merge( $sels, [
+                'body > footer','#colophon','.site-footer','footer.site-footer',
+                'footer[role="contentinfo"]','.wp-site-blocks > footer',
+                '.elementor-location-footer','.e-con-footer','.fl-page-footer',
+                '.et_builder_inner_content > footer',
+            ] );
+        }
+        echo '<style id="sapn-hide-chrome">' . implode( ',', $sels ) . '{display:none!important;}'
+            . ( $hide_header ? 'html{margin-top:0!important;}body{padding-top:0!important;}' : '' )
             . '</style>';
     }
     require __DIR__ . '/sleep-apnea-template.php';

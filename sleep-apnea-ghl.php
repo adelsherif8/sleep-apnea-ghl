@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.11
+ * Version:     1.0.12
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -199,15 +199,37 @@ function sapn_checker_fields() {
     ];
 }
 
+function sapn_ghl_clean_key( $api_key ) {
+    $k = trim( (string) $api_key );
+    // If the user pasted the token with a "Bearer " prefix already, strip it.
+    if ( stripos( $k, 'Bearer ' ) === 0 ) $k = trim( substr( $k, 7 ) );
+    return $k;
+}
+
 function sapn_ghl_headers( $api_key ) {
     return [
-        'Authorization' => 'Bearer ' . $api_key,
+        'Authorization' => 'Bearer ' . sapn_ghl_clean_key( $api_key ),
         'Content-Type'  => 'application/json',
         'Version'       => '2021-07-28',
     ];
 }
 
 function sapn_ghl_base() { return 'https://services.leadconnectorhq.com'; }
+
+// Extract a useful error message from a GHL response (or wp_error).
+function sapn_ghl_error( $r, $code = null ) {
+    if ( is_wp_error( $r ) ) return $r->get_error_message();
+    if ( $code === null )   $code = wp_remote_retrieve_response_code( $r );
+    $raw  = wp_remote_retrieve_body( $r );
+    $body = json_decode( $raw, true );
+    $msg  = '';
+    if ( is_array( $body ) ) {
+        $msg = $body['message'] ?? '';
+        if ( ! $msg && isset( $body['error'] ) ) $msg = is_string( $body['error'] ) ? $body['error'] : wp_json_encode( $body['error'] );
+    }
+    if ( ! $msg ) $msg = $raw ? wp_strip_all_tags( substr( $raw, 0, 240 ) ) : '(empty body)';
+    return 'HTTP ' . $code . ' — ' . $msg;
+}
 
 function sapn_ajax_check_ghl_fields() {
     check_ajax_referer( 'sapn_fields_nonce', 'nonce' );
@@ -222,7 +244,12 @@ function sapn_ajax_check_ghl_fields() {
     ] );
     if ( is_wp_error( $r ) ) wp_send_json_error( $r->get_error_message() );
     $code = wp_remote_retrieve_response_code( $r );
-    if ( $code === 401 || $code === 403 ) wp_send_json_error( 'Token lacks custom-fields scope (HTTP ' . $code . ').' );
+    if ( $code === 401 || $code === 403 ) {
+        wp_send_json_error( 'GHL auth failed (' . sapn_ghl_error( $r, $code ) . '). Common causes: '
+            . '(1) Wrong API key type — use a Private Integration Token (Sub-account → Settings → Private Integrations), not a legacy API key. '
+            . '(2) Token missing one of these scopes: contacts.write, custom-fields.readonly, custom-fields.write. '
+            . '(3) Wrong Location ID — must match the sub-account that issued the token.' );
+    }
 
     $body     = json_decode( wp_remote_retrieve_body( $r ), true );
     $existing = [];
@@ -377,7 +404,11 @@ function sapn_ajax_create_checker_fields() {
         $code = is_wp_error( $r ) ? 0 : wp_remote_retrieve_response_code( $r );
         if ( $code >= 200 && $code < 300 ) $created[] = $key;
         elseif ( $code === 400 ) $created[] = $key; // already exists
-        else $errors[] = $key . ': ' . ( is_wp_error( $r ) ? $r->get_error_message() : 'HTTP ' . $code );
+        elseif ( $code === 401 || $code === 403 ) {
+            wp_send_json_error( 'GHL auth failed (' . sapn_ghl_error( $r, $code ) . '). '
+                . 'Use a Private Integration Token (Settings → Private Integrations) with scopes contacts.write + custom-fields.readonly + custom-fields.write.' );
+        }
+        else $errors[] = $key . ': ' . sapn_ghl_error( $r, $code );
     }
     wp_send_json_success( [ 'created' => $created, 'errors' => $errors ] );
 }
@@ -848,7 +879,10 @@ function sapn_render_ghl_fields_tab( $s ) {
                 .then(function(r){ return r.json(); }).then(function(res){
                     btn.disabled = false;
                     if (res.success) {
-                        setStatus(fst, '✓ Created ' + res.data.created.length + ' checker fields. Now drag each into its folder, then click Auto-detect.', res.data.errors.length ? '#d97706' : '#16a34a');
+                        var msg = '✓ Created ' + res.data.created.length + ' checker fields';
+                        if (res.data.errors.length) msg += ' — ' + res.data.errors.length + ' error(s): ' + res.data.errors.join(' | ');
+                        else msg += '. Now drag each into its folder, then click Auto-detect.';
+                        setStatus(fst, msg, res.data.errors.length ? '#d97706' : '#16a34a');
                     } else setStatus(fst, '✗ ' + (res.data || 'Error'), '#dc2626');
                 }).catch(function(){ btn.disabled=false; setStatus(fst, '✗ Request failed', '#dc2626'); });
         });

@@ -129,6 +129,17 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       border-style: solid;
       border-width: 0;
     }
+    /* The compiled Tailwind wraps several border utilities in :where(...), giving them 0,0,0,0
+       specificity — my .sapn-app * { border-width: 0 } reset (0,0,1,1) beats them and dividers
+       vanish. Re-state the actual border-width values inside .sapn-app with high specificity. */
+    .sapn-app .divide-y > :not(:last-child)        { border-bottom-width: 1px !important; }
+    .sapn-app .divide-y-reverse > :not(:first-child){ border-top-width: 1px !important; }
+    .sapn-app .border    { border-width: 1px !important; }
+    .sapn-app .border-2  { border-width: 2px !important; }
+    .sapn-app .border-t  { border-top-width: 1px !important; }
+    .sapn-app .border-b  { border-bottom-width: 1px !important; }
+    .sapn-app .border-l  { border-left-width: 1px !important; }
+    .sapn-app .border-r  { border-right-width: 1px !important; }
     /* Neutralise the theme's .entry-content paragraph spacing without killing Tailwind mt-* / mb-*
        utilities. We zero margins on the base elements (no !important, so utility classes still
        win), then re-declare the actual mt-* / mb-* values below with !important to beat themes

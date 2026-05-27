@@ -24,7 +24,9 @@ jobs:
           mkdir -p build
           zip -r build/sleep-apnea-ghl.zip \
             sleep-apnea-ghl.php \
+            sleep-apnea-template.php \
             logo.svg \
+            assets/ \
             vendor/ \
             composer.json \
             composer.lock \

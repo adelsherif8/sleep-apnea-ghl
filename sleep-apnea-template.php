@@ -731,7 +731,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
           '<h3 class="font-semibold text-foreground text-lg sm:text-xl tracking-tight">Your answers suggest a custom oral appliance may be worth exploring.</h3>' +
           '<p class="mt-2 text-muted-foreground text-sm leading-relaxed">This may include a custom-fitted sleep appliance, fitting, calibration, and follow-up care depending on your final treatment plan.</p>' +
           '<div class="bg-background/60 mt-5 border border-border rounded-2xl overflow-hidden">' +
-            '<p class="px-5 py-3 bg-secondary/40 border-border/60 border-b font-semibold text-muted-foreground text-[11px] uppercase tracking-[.08em]">What your estimate may include</p>' +
+            '<p class="px-5 py-3 bg-secondary/40 border-border/60 border-b font-semibold text-muted-foreground text-[11px] uppercase tracking-[.08em] text-center">What your estimate may include</p>' +
             '<ul class="divide-y divide-border/60">' + linesHtml +
               '<li class="flex justify-between items-center bg-secondary/60 px-5 py-3.5 border-border/60 border-t"><p class="font-semibold text-foreground text-[11px] uppercase tracking-[.08em]">Subtotal range</p><p class="font-semibold tabular-nums text-foreground text-sm">' + fmtMoney(subMin) + '–' + fmtMoney(subMax) + '</p></li>' +
             '</ul>' +

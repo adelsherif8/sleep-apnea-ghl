@@ -130,6 +130,34 @@ $ins_url = $s['result_insurance_url'] ?? '';
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
         </button>
         <p class="mt-3 text-muted-foreground text-xs">Takes about 60 seconds. No pressure. This estimate is not a diagnosis.</p>
+
+        <!-- Your Provider card -->
+        <div class="bg-card shadow-[var(--shadow-soft)] mt-12 p-6 sm:p-8 border border-border rounded-3xl text-left">
+          <div class="flex items-start gap-4">
+            <div class="flex flex-none justify-center items-center bg-accent/60 rounded-2xl w-14 h-14 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>
+            </div>
+            <div class="flex-1">
+              <p class="font-medium text-[11px] text-primary uppercase tracking-wide">Your provider</p>
+              <h3 class="mt-1 font-semibold text-foreground text-lg"><?= esc_html( $s['intro_provider_name'] ?? ( 'Dr. ' . $brand . ' Dental Sleep Team' ) ) ?></h3>
+              <p class="mt-2 text-muted-foreground text-sm leading-relaxed"><?= esc_html( $s['intro_provider_bio'] ?? ( $brand . "'s sleep team focuses on airway-centred dentistry — custom oral appliances, snoring support, and myofunctional care for adults across " . $city . ". We work alongside your physician or sleep specialist when needed, so your treatment plan stays coordinated." ) ) ?></p>
+              <div class="flex flex-wrap gap-2 mt-4">
+                <span class="inline-flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full font-medium text-[11px] text-foreground">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-primary"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                  Airway-focused care
+                </span>
+                <span class="inline-flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full font-medium text-[11px] text-foreground">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-primary"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                  <?= esc_html( $city ) ?>
+                </span>
+                <span class="inline-flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full font-medium text-[11px] text-foreground">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-primary"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>
+                  Custom sleep appliances
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </section>
@@ -215,6 +243,9 @@ $ins_url = $s['result_insurance_url'] ?? '';
     smile:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4.5 h-4.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
     question:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4.5 h-4.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
     leaf:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>',
+    sparkles:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>',
+    shield:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>',
+    check:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-none mt-0.5 w-4 h-4 text-primary"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
     arrowRight:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
     checkSmall:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>'
   };
@@ -391,18 +422,28 @@ $ins_url = $s['result_insurance_url'] ?? '';
   function renderContact(qd){
     var c = state.answers.contact || {};
     var price = calculatePrice();
-    function pillsHtml(group, options) {
+    function pillsHtml(group, options, stack) {
       return options.map(function(o){
         var active = c[group] === o.value;
-        return '<button type="button" data-pill="' + group + '" data-value="' + o.value + '" class="bg-background px-2 py-3 border border-border rounded-xl text-muted-foreground text-xs transition' + (active ? ' pill-active' : '') + '">' + (o.icon || '') + (o.icon ? '<div style="margin-top:4px">' + o.label + '</div>' : o.label) + '</button>';
+        var cls = stack
+          ? 'flex flex-col items-center gap-1 bg-background px-2 py-3 border border-border rounded-xl text-muted-foreground text-xs transition'
+          : 'bg-background px-2 py-2.5 border border-border rounded-xl text-muted-foreground text-xs transition';
+        return '<button type="button" data-pill="' + group + '" data-value="' + o.value + '" class="' + cls + (active ? ' pill-active' : '') + '">' + (o.icon || '') + o.label + '</button>';
       }).join('');
     }
     var contactPrefOpts = [
-      { value:'text',  label:'Text',       icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 inline"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>' },
-      { value:'phone', label:'Phone call', icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 inline"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>' },
-      { value:'email', label:'Email',      icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 inline"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>' }
+      { value:'text',  label:'Text',       icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>' },
+      { value:'phone', label:'Phone call', icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>' },
+      { value:'email', label:'Email',      icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>' }
     ];
     var benefitsOpts = [ { value:'yes', label:'Yes' }, { value:'unsure', label:'Not sure' }, { value:'no', label:'No' } ];
+
+    var trustBadges =
+      '<div class="gap-2 grid grid-cols-3 mt-4 text-center">' +
+        '<div class="bg-card/60 p-2.5 border border-border rounded-xl"><span class="mx-auto mb-1 block w-4 h-4 text-primary">' + ICONS.shield + '</span><p class="text-[10px] text-muted-foreground leading-tight">Private &amp; secure</p></div>' +
+        '<div class="bg-card/60 p-2.5 border border-border rounded-xl"><span class="mx-auto mb-1 block w-4 h-4 text-primary">' + ICONS.leaf.replace('w-7 h-7','w-4 h-4') + '</span><p class="text-[10px] text-muted-foreground leading-tight">No spam, ever</p></div>' +
+        '<div class="bg-card/60 p-2.5 border border-border rounded-xl"><span class="mx-auto mb-1 block w-4 h-4 text-primary">' + ICONS.sparkles.replace('w-7 h-7','w-4 h-4') + '</span><p class="text-[10px] text-muted-foreground leading-tight">Instant estimate</p></div>' +
+      '</div>';
 
     return '<form data-form="contact">' +
       '<div class="mb-6"><h2 class="font-semibold text-foreground text-2xl sm:text-3xl tracking-tight">' + qd.title + '</h2><p class="mt-2 text-muted-foreground text-sm leading-relaxed">' + qd.subtitle + '</p></div>' +
@@ -420,9 +461,10 @@ $ins_url = $s['result_insurance_url'] ?? '';
         '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">First Name</span><input name="firstName" maxlength="80" value="' + (c.firstName || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
         '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Email Address</span><input name="email" type="email" maxlength="200" value="' + (c.email || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
         '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Phone Number (optional)</span><input name="phone" type="tel" maxlength="30" value="' + (c.phone || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
-        '<div class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Preferred way to be contacted (optional)</span><div class="gap-2 grid grid-cols-3">' + pillsHtml('contactPref', contactPrefOpts) + '</div></div>' +
-        '<div class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Do you have extended health benefits? (optional)</span><div class="gap-2 grid grid-cols-3">' + pillsHtml('benefits', benefitsOpts) + '</div></div>' +
+        '<div class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Preferred way to be contacted (optional)</span><div class="gap-2 grid grid-cols-3">' + pillsHtml('contactPref', contactPrefOpts, true) + '</div></div>' +
+        '<div class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Do you have extended health benefits? (optional)</span><div class="gap-2 grid grid-cols-3">' + pillsHtml('benefits', benefitsOpts, false) + '</div></div>' +
       '</div>' +
+      trustBadges +
       '<button type="submit" data-action="submit-contact" disabled class="inline-flex justify-center items-center gap-2 bg-primary hover:opacity-95 disabled:opacity-40 mt-6 px-6 py-4 rounded-full w-full font-medium text-primary-foreground text-base transition">Reveal My Estimate ' + ICONS.arrowRight + '</button>' +
       '<p data-error class="hidden mt-3 text-red-600 text-xs text-center"></p>' +
       '<p class="mt-3 text-muted-foreground text-xs text-center">We respect your privacy. No spam — just your estimate and next-step information.</p>' +
@@ -467,8 +509,26 @@ $ins_url = $s['result_insurance_url'] ?? '';
       ? '<a href="' + INS_URL + '" class="inline-flex justify-center items-center bg-background hover:bg-accent/30 px-6 py-3.5 border border-border rounded-full w-full font-medium text-foreground text-sm transition">' + INS_LBL + '</a>'
       : '<button type="button" class="inline-flex justify-center items-center bg-background hover:bg-accent/30 px-6 py-3.5 border border-border rounded-full w-full font-medium text-foreground text-sm transition">' + INS_LBL + '</button>';
 
+    var bullets = [
+      'Designed to be worn during sleep',
+      'Custom-fitted to your teeth and jaw',
+      'Quiet, compact, and travel-friendly',
+      'May be an option for snoring or appropriate sleep apnea cases'
+    ];
+    var bulletsHtml = '<ul class="space-y-2 mt-5">' + bullets.map(function(t){
+      return '<li class="flex items-start gap-2 text-foreground text-sm">' + ICONS.check + '<span>' + t + '</span></li>';
+    }).join('') + '</ul>';
+
+    var myofunctionalCard = includesAirway
+      ? '<div class="bg-card mt-5 p-5 border border-border rounded-2xl">' +
+          '<p class="font-medium text-muted-foreground text-xs uppercase tracking-wide">May also support your plan</p>' +
+          '<h4 class="mt-2 font-semibold text-foreground text-base">Myofunctional therapy may be part of your treatment path.</h4>' +
+          '<p class="mt-1.5 text-muted-foreground text-sm leading-relaxed">Myofunctional therapy focuses on training the muscles of the mouth, tongue, and face to support healthier breathing patterns, oral rest posture, and airway-related function.</p>' +
+        '</div>'
+      : '';
+
     resultsEl.innerHTML =
-      '<div class="text-center"><div class="flex justify-center items-center bg-accent/60 mx-auto mb-4 rounded-2xl w-14 h-14 text-primary">' + ICONS.leaf + '</div><p class="text-muted-foreground text-sm">Thanks' + (c.firstName ? ', ' + c.firstName : '') + ' — here\'s your personalized estimate</p></div>' +
+      '<div class="text-center"><div class="flex justify-center items-center bg-accent/60 mx-auto mb-4 rounded-2xl w-14 h-14 text-primary">' + ICONS.sparkles + '</div><p class="text-muted-foreground text-sm">Thanks' + (c.firstName ? ', ' + c.firstName : '') + ' — here\'s your personalized estimate</p></div>' +
       '<div class="bg-card shadow-[var(--shadow-soft)] mt-6 border border-primary/20 rounded-3xl overflow-hidden">' +
         '<div class="bg-accent/30 p-6 sm:p-8 border-border/60 border-b">' +
           '<p class="font-medium text-primary text-xs uppercase tracking-wide">Your estimated investment</p>' +
@@ -484,10 +544,15 @@ $ins_url = $s['result_insurance_url'] ?? '';
               '<li class="flex justify-between items-center bg-secondary/40 px-4 py-3"><p class="font-medium text-muted-foreground text-xs uppercase tracking-wide">Subtotal range</p><p class="font-semibold tabular-nums text-foreground text-sm">' + fmtMoney(subMin) + '–' + fmtMoney(subMax) + '</p></li>' +
             '</ul>' +
           '</div>' +
+          bulletsHtml +
           '<div class="flex flex-col gap-2.5 mt-6">' + bookBtn + insBtn + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="bg-secondary/40 mt-8 p-5 border border-border/60 rounded-2xl text-muted-foreground text-xs leading-relaxed">This estimate is for educational purposes only and is not a diagnosis or treatment plan. Final treatment recommendations, fees, and insurance eligibility are confirmed after a clinical exam and review of your sleep history.</div>';
+      myofunctionalCard +
+      '<div class="bg-secondary/40 mt-8 p-5 border border-border/60 rounded-2xl text-muted-foreground text-xs leading-relaxed">' +
+        '<span class="block mb-1.5 w-4 h-4 text-primary">' + ICONS.shield + '</span>' +
+        'This estimate is for educational purposes only and is not a diagnosis or treatment plan. Final treatment recommendations, fees, and insurance eligibility are confirmed after a clinical exam and review of your sleep history.' +
+      '</div>';
   }
 
   // ── Contact form wiring ──

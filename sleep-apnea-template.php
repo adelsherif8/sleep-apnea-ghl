@@ -340,15 +340,6 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
         <span id="sapn-step-label" class="text-muted-foreground text-xs">Step 1 of 7</span>
       </div>
       <div class="bg-secondary w-full h-1"><div id="sapn-progress" class="bg-primary h-full transition-all duration-500 ease-out" style="width:14.28%"></div></div>
-      <div id="sapn-estimate-bar" class="bg-accent/20 border-border/60 border-t transition-colors duration-500">
-        <div class="flex justify-between items-center gap-3 mx-auto px-5 py-2.5 max-w-2xl">
-          <div class="flex items-center gap-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-primary animate-pulse"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
-            <span id="sapn-estimate-label">Starting estimate</span>
-          </div>
-          <div id="sapn-estimate-value" class="font-semibold tabular-nums text-foreground text-sm">$0<span class="mx-1 text-muted-foreground">–</span>$250</div>
-        </div>
-      </div>
     </header>
     <main class="mx-auto px-5 py-8 sm:py-12 max-w-2xl">
       <div id="sapn-step" class=""></div>
@@ -493,9 +484,6 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
   function qa(sel){ return ROOT.querySelectorAll(sel); }
   var stepLabel    = q('#sapn-step-label');
   var progressBar  = q('#sapn-progress');
-  var estimateBar  = q('#sapn-estimate-bar');
-  var estimateVal  = q('#sapn-estimate-value');
-  var estimateLbl  = q('#sapn-estimate-label');
   var stepEl       = q('#sapn-step');
   var resultsEl    = q('#sapn-results');
   var backBtn      = q('#sapn-back');
@@ -578,19 +566,15 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     }
     return { min: min, max: max };
   }
-  function priceString(p){ return fmtMoney(p.min) + '<span class="mx-1 text-muted-foreground">–</span>' + fmtMoney(p.max); }
+  // Single-value display: collapse the [min, max] range to one number (use the max as the
+  // headline estimate so the user sees the full investment, not a range).
+  function singlePrice() { return calculatePrice().max; }
+  function priceString() { return fmtMoney(singlePrice()); }
 
   function updateHeader() {
     var n = state.currentStep + 1;
     stepLabel.textContent = 'Step ' + n + ' of ' + TOTAL_STEPS;
     progressBar.style.width = ((n / TOTAL_STEPS) * 100) + '%';
-    estimateVal.innerHTML = priceString(calculatePrice());
-    estimateBar.classList.remove('bg-accent/20','bg-primary/15');
-    if (state.currentStep === 0 && !state.answers.reason) { estimateBar.classList.add('bg-accent/20'); estimateLbl.textContent = 'Starting estimate'; }
-    else if (state.currentStep < QUESTIONS.length - 1)    { estimateBar.classList.add('bg-primary/15'); estimateLbl.textContent = 'Refining as you answer'; }
-    else                                                  { estimateBar.classList.add('bg-primary/15'); estimateLbl.textContent = 'Estimate range'; }
-    var isContact = QUESTIONS[state.currentStep] && QUESTIONS[state.currentStep].type === 'contact';
-    estimateBar.style.display = isContact ? 'none' : '';
     backBtn.style.visibility = state.currentStep === 0 ? 'hidden' : 'visible';
   }
 
@@ -626,7 +610,6 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
 
   function renderContact(qd){
     var c = state.answers.contact || {};
-    var price = calculatePrice();
     function pillsHtml(group, options, stack) {
       return options.map(function(o){
         var active = c[group] === o.value;
@@ -655,7 +638,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       '<div class="relative bg-accent/20 mb-6 p-5 border border-primary/20 rounded-2xl overflow-hidden">' +
         '<div class="blur-[6px] select-none">' +
           '<p class="font-medium text-[11px] text-primary uppercase tracking-wide">Your estimated investment</p>' +
-          '<p class="mt-1 font-semibold tabular-nums text-foreground text-3xl tracking-tight">' + priceString(price) + '</p>' +
+          '<p class="mt-1 font-semibold tabular-nums text-foreground text-3xl tracking-tight">' + priceString() + '</p>' +
           '<p class="mt-2 text-muted-foreground text-xs">Sleep consultation · Custom oral appliance · Follow-up care</p>' +
         '</div>' +
         '<div class="absolute inset-0 flex justify-center items-center bg-gradient-to-b from-background/40 to-background/80 pointer-events-none">' +
@@ -689,21 +672,20 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
 
   function renderResults() {
     var c = state.answers.contact || {};
-    var price = calculatePrice();
     var includesAirway = Array.isArray(state.answers.airway) && state.answers.airway.some(function(v){ return v !== 'none'; });
+    // Single-value line items (no ranges).
     var lines = [
-      { name:'Sleep consultation',    range:[0, 250] },
-      { name:'Custom oral appliance', sub:'Includes fitting &amp; calibration', range:[1500, 4000] },
-      { name:'Follow-up care',        range:[0, 500] }
+      { name:'Sleep consultation',    value: 250 },
+      { name:'Custom oral appliance', sub:'Includes fitting &amp; calibration', value: 4000 },
+      { name:'Follow-up care',        value: 500 }
     ];
     if (includesAirway) {
-      lines.push({ name:'Myofunctional assessment',     range:[150, 300] });
-      lines.push({ name:'Myofunctional therapy program', sub:'If recommended', range:[600, 1500] });
+      lines.push({ name:'Myofunctional assessment',     value: 300 });
+      lines.push({ name:'Myofunctional therapy program', sub:'If recommended', value: 1500 });
     }
-    var subMin = lines.reduce(function(s,l){ return s + l.range[0]; }, 0);
-    var subMax = lines.reduce(function(s,l){ return s + l.range[1]; }, 0);
+    var subTotal = lines.reduce(function(s,l){ return s + l.value; }, 0);
     var linesHtml = lines.map(function(l){
-      return '<li class="flex justify-between items-start gap-4 px-5 py-3.5"><div class="flex-1 min-w-0"><p class="font-medium text-foreground text-sm leading-snug">' + l.name + '</p>' + (l.sub ? '<p class="mt-0.5 text-muted-foreground text-xs leading-snug">' + l.sub + '</p>' : '') + '</div><p class="flex-none font-medium tabular-nums text-foreground text-sm leading-snug">' + fmtMoney(l.range[0]) + '–' + fmtMoney(l.range[1]) + '</p></li>';
+      return '<li class="flex justify-between items-start gap-4 px-5 py-3.5"><div class="flex-1 min-w-0"><p class="font-medium text-foreground text-sm leading-snug">' + l.name + '</p>' + (l.sub ? '<p class="mt-0.5 text-muted-foreground text-xs leading-snug">' + l.sub + '</p>' : '') + '</div><p class="flex-none font-medium tabular-nums text-foreground text-sm leading-snug">' + fmtMoney(l.value) + '</p></li>';
     }).join('');
 
     var bookBtn = BOOK_URL
@@ -760,7 +742,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       '<div class="bg-card shadow-[var(--shadow-soft)] mt-6 border border-primary/20 rounded-3xl overflow-hidden">' +
         '<div class="bg-accent/30 p-6 sm:p-8 border-border/60 border-b">' +
           '<p class="font-medium text-primary text-xs uppercase tracking-wide">Your estimated investment</p>' +
-          '<p class="mt-2 font-semibold tabular-nums text-foreground text-3xl sm:text-4xl tracking-tight">' + priceString(price) + '</p>' +
+          '<p class="mt-2 font-semibold tabular-nums text-foreground text-3xl sm:text-4xl tracking-tight">' + priceString() + '</p>' +
           '<p class="mt-2 text-muted-foreground text-xs">Before insurance · CAD</p>' +
         '</div>' +
         '<div class="p-6 sm:p-8">' +
@@ -769,7 +751,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
           '<div class="bg-background/60 mt-5 border border-border rounded-2xl overflow-hidden">' +
             '<p class="px-5 py-3 bg-secondary/40 border-border/60 border-b font-semibold text-muted-foreground text-[11px] uppercase tracking-[.08em] text-center">What your estimate may include</p>' +
             '<ul class="divide-y divide-border/60">' + linesHtml +
-              '<li class="flex justify-between items-center bg-secondary/60 px-5 py-3.5 border-border/60 border-t"><p class="font-semibold text-foreground text-[11px] uppercase tracking-[.08em]">Subtotal range</p><p class="font-semibold tabular-nums text-foreground text-sm">' + fmtMoney(subMin) + '–' + fmtMoney(subMax) + '</p></li>' +
+              '<li class="flex justify-between items-center bg-secondary/60 px-5 py-3.5 border-border/60 border-t"><p class="font-semibold text-foreground text-[11px] uppercase tracking-[.08em]">Subtotal</p><p class="font-semibold tabular-nums text-foreground text-sm">' + fmtMoney(subTotal) + '</p></li>' +
             '</ul>' +
           '</div>' +
           bulletsHtml +
@@ -833,7 +815,6 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
   function submitToServer(form) {
     var c = state.answers.contact || {};
     var hp = ROOT.querySelector('[name="sapn_hp_website"]');
-    var price = calculatePrice();
     var payload = {
       action:        'sapn_submit',
       sapn_nonce:    NONCE,
@@ -846,7 +827,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       cpap:          state.answers.cpap   || '',
       symptoms:      (state.answers.symptoms || []).join(', '),
       airway:        (state.answers.airway   || []).join(', '),
-      estimateRange: fmtMoney(price.min) + ' – ' + fmtMoney(price.max),
+      estimateRange: fmtMoney(singlePrice()),
       contactPref:   c.contactPref || '',
       benefits:      c.benefits    || '',
       utmcampaign_custom: _getParam('utmcampaign_custom'),

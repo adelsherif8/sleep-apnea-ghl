@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.20
+ * Version:     1.0.21
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -107,6 +107,18 @@ function sapn_defaults() {
         'result_insurance_label' => 'Contact Us',
         'result_insurance_url'   => '',
 
+        // 'What to expect / Next steps' card on the results screen
+        'next_steps_show'        => '1',
+        'next_steps_heading'     => 'So, you have been diagnosed with sleep apnea — now what?',
+        'next_steps_body'        => "Bring a copy of your sleep study to your consultation, or sign a document release form so we can reach out to your sleep clinic on your behalf. Please also fill out our online sleep questionnaires before your visit:",
+        'next_steps_link1_label' => 'Berlin Questionnaire',
+        'next_steps_link1_url'   => 'https://smilesinwaterloo.com/services/sleep-apnea-snoring/#',
+        'next_steps_link2_label' => 'STOP-Bang Questionnaire',
+        'next_steps_link2_url'   => 'https://smilesinwaterloo.com/services/sleep-apnea-snoring/#',
+        'next_steps_link3_label' => 'Learn how ProSomnus treatment works',
+        'next_steps_link3_url'   => 'https://prosomnus.com/how-it-works/',
+        'next_steps_hint'        => 'Not sure where to start?',
+
         // Submission behaviour
         'success_redirect_url'   => '',
         'lead_tag'               => 'sleep-apnea-form',
@@ -139,9 +151,9 @@ function sapn_sanitize_settings( $input ) {
     $defaults = sapn_defaults();
     $clean    = [];
     foreach ( $defaults as $key => $default ) {
-        if ( in_array( $key, [ 'hero_subheading', 'intro_sub' ], true ) ) {
+        if ( in_array( $key, [ 'hero_subheading', 'intro_sub', 'next_steps_body' ], true ) ) {
             $clean[ $key ] = sanitize_textarea_field( $input[ $key ] ?? $default );
-        } elseif ( in_array( $key, [ 'success_redirect_url', 'result_book_url', 'result_insurance_url' ], true ) ) {
+        } elseif ( in_array( $key, [ 'success_redirect_url', 'result_book_url', 'result_insurance_url', 'next_steps_link1_url', 'next_steps_link2_url', 'next_steps_link3_url' ], true ) ) {
             $clean[ $key ] = esc_url_raw( $input[ $key ] ?? $default );
         } else {
             $clean[ $key ] = sanitize_text_field( $input[ $key ] ?? $default );
@@ -791,6 +803,18 @@ function sapn_render_settings_tab( $s ) {
             <tr><th><label>Submit-estimate button URL</label></th><td><input type="url" name="<?= SAPN_OPTION ?>[result_book_url]" value="<?= esc_attr( $s['result_book_url'] ) ?>" class="regular-text" placeholder="https://example.com/thank-you"/><p class="description">Optional. If empty, falls back to the Thank-you page URL below.</p></td></tr>
             <tr><th><label>Contact-us button text</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[result_insurance_label]" value="<?= esc_attr( $s['result_insurance_label'] ) ?>" class="regular-text"/></td></tr>
             <tr><th><label>Contact-us button URL</label></th><td><input type="url" name="<?= SAPN_OPTION ?>[result_insurance_url]" value="<?= esc_attr( $s['result_insurance_url'] ) ?>" class="regular-text" placeholder="https://example.com/contact-us"/></td></tr>
+        </table>
+
+        <h2>"Next steps" card on results screen</h2>
+        <p style="margin-top:-6px;color:#64748b;font-size:12px;">A short guidance card with up to three links, shown under the estimate. Useful for sleep-study handoff, intake questionnaires, or "learn more" links.</p>
+        <table class="form-table" role="presentation">
+            <tr><th><label>Show this card</label></th><td><label><input type="checkbox" name="<?= SAPN_OPTION ?>[next_steps_show]" value="1" <?= checked( $s['next_steps_show'], '1', false ) ?>/> Show the "Next steps" card on the results screen.</label></td></tr>
+            <tr><th><label>Heading</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[next_steps_heading]" value="<?= esc_attr( $s['next_steps_heading'] ) ?>" class="regular-text"/></td></tr>
+            <tr><th><label>Body text</label></th><td><textarea name="<?= SAPN_OPTION ?>[next_steps_body]" class="large-text" rows="3"><?= esc_textarea( $s['next_steps_body'] ) ?></textarea><p class="description">Plain text. The two questionnaire links are appended after this on the same line.</p></td></tr>
+            <tr><th><label>Link 1 label / URL</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[next_steps_link1_label]" value="<?= esc_attr( $s['next_steps_link1_label'] ) ?>" class="regular-text" placeholder="Berlin Questionnaire"/><br><input type="url" name="<?= SAPN_OPTION ?>[next_steps_link1_url]" value="<?= esc_attr( $s['next_steps_link1_url'] ) ?>" class="regular-text" placeholder="https://…" style="margin-top:4px;"/></td></tr>
+            <tr><th><label>Link 2 label / URL</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[next_steps_link2_label]" value="<?= esc_attr( $s['next_steps_link2_label'] ) ?>" class="regular-text" placeholder="STOP-Bang Questionnaire"/><br><input type="url" name="<?= SAPN_OPTION ?>[next_steps_link2_url]" value="<?= esc_attr( $s['next_steps_link2_url'] ) ?>" class="regular-text" placeholder="https://…" style="margin-top:4px;"/></td></tr>
+            <tr><th><label>"Not sure where to start?" hint</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[next_steps_hint]" value="<?= esc_attr( $s['next_steps_hint'] ) ?>" class="regular-text"/></td></tr>
+            <tr><th><label>Link 3 label / URL</label></th><td><input type="text" name="<?= SAPN_OPTION ?>[next_steps_link3_label]" value="<?= esc_attr( $s['next_steps_link3_label'] ) ?>" class="regular-text" placeholder="Learn how ProSomnus treatment works"/><br><input type="url" name="<?= SAPN_OPTION ?>[next_steps_link3_url]" value="<?= esc_attr( $s['next_steps_link3_url'] ) ?>" class="regular-text" placeholder="https://…" style="margin-top:4px;"/></td></tr>
         </table>
 
         <h2>Submission</h2>

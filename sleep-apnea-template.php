@@ -399,6 +399,18 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
   var BOOK_URL  = <?= wp_json_encode( $booking ) ?>;
   var INS_LBL   = <?= wp_json_encode( $s['result_insurance_label'] ) ?>;
   var INS_URL   = <?= wp_json_encode( $ins_url ) ?>;
+  var NEXT_STEPS = <?= wp_json_encode( [
+    'show'    => ( $s['next_steps_show'] ?? '0' ) === '1',
+    'heading' => $s['next_steps_heading'] ?? '',
+    'body'    => $s['next_steps_body']    ?? '',
+    'l1_lbl'  => $s['next_steps_link1_label'] ?? '',
+    'l1_url'  => $s['next_steps_link1_url']   ?? '',
+    'l2_lbl'  => $s['next_steps_link2_label'] ?? '',
+    'l2_url'  => $s['next_steps_link2_url']   ?? '',
+    'l3_lbl'  => $s['next_steps_link3_label'] ?? '',
+    'l3_url'  => $s['next_steps_link3_url']   ?? '',
+    'hint'    => $s['next_steps_hint'] ?? '',
+  ] ) ?>;
 
   // ── ICONS ──
   var ICONS = {
@@ -719,6 +731,30 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
         '</div>'
       : '';
 
+    function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escText(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function nsLink(label, url, extraClass) {
+      if (!label || !url) return '';
+      return '<a href="' + escAttr(url) + '" target="_blank" rel="noopener" class="font-semibold text-primary underline underline-offset-2 hover:opacity-80' + (extraClass ? ' ' + extraClass : '') + '">' + escText(label) + '</a>';
+    }
+    var nextStepsCard = '';
+    if (NEXT_STEPS.show && (NEXT_STEPS.heading || NEXT_STEPS.body)) {
+      var q1 = nsLink(NEXT_STEPS.l1_lbl, NEXT_STEPS.l1_url);
+      var q2 = nsLink(NEXT_STEPS.l2_lbl, NEXT_STEPS.l2_url);
+      var q3 = nsLink(NEXT_STEPS.l3_lbl + ' →', NEXT_STEPS.l3_url);
+      var quizLine = '';
+      if (q1 && q2)      quizLine = ' ' + q1 + ' and ' + q2 + '.';
+      else if (q1 || q2) quizLine = ' ' + (q1 || q2) + '.';
+      var hintLine = '';
+      if (q3) hintLine = '<p class="mt-3 text-muted-foreground text-sm leading-relaxed">' + escText(NEXT_STEPS.hint || '') + ' ' + q3 + '</p>';
+      nextStepsCard =
+        '<div class="bg-card shadow-[var(--shadow-card)] mt-5 p-5 sm:p-6 border border-border rounded-2xl">' +
+          (NEXT_STEPS.heading ? '<h4 class="font-semibold text-foreground text-base sm:text-lg tracking-tight">' + escText(NEXT_STEPS.heading) + '</h4>' : '') +
+          (NEXT_STEPS.body ? '<p class="mt-2 text-muted-foreground text-sm leading-relaxed">' + escText(NEXT_STEPS.body) + quizLine + '</p>' : '') +
+          hintLine +
+        '</div>';
+    }
+
     resultsEl.innerHTML =
       '<div class="text-center"><div class="flex justify-center items-center bg-accent/60 mx-auto mb-4 rounded-2xl w-14 h-14 text-primary">' + ICONS.sparkles + '</div><p class="text-muted-foreground text-sm">Thanks' + (c.firstName ? ', ' + c.firstName : '') + ' — here\'s your personalized estimate</p></div>' +
       '<div class="bg-card shadow-[var(--shadow-soft)] mt-6 border border-primary/20 rounded-3xl overflow-hidden">' +
@@ -741,6 +777,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
         '</div>' +
       '</div>' +
       myofunctionalCard +
+      nextStepsCard +
       '<div class="bg-secondary/40 mt-8 p-5 border border-border/60 rounded-2xl text-muted-foreground text-xs leading-relaxed">' +
         '<span class="block mb-1.5 w-4 h-4 text-primary">' + ICONS.shield + '</span>' +
         'This estimate is for educational purposes only and is not a diagnosis or treatment plan. Final treatment recommendations, fees, and insurance eligibility are confirmed after a clinical exam and review of your sleep history.' +

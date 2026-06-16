@@ -812,6 +812,44 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     return v || ss[k] || '';
   }
 
+  // Normalize a phone number to international E.164-ish format. Handles users
+  // who type a national number (e.g. Egyptian "01009955929") without picking a
+  // country, so the GHL contact gets stored with the correct dial code.
+  function sapnNormalizePhone(raw) {
+    var val = (raw || '').trim();
+    if (!val) return '';
+    // Already international format → just keep digits + leading +
+    if (val.charAt(0) === '+') return '+' + val.slice(1).replace(/\D/g, '');
+    var digits = val.replace(/\D/g, '');
+    if (digits.length < 7) return val;
+    // Strip the national trunk-prefix zero (used in Egypt, UK, France, Germany, etc.)
+    var stripped = digits.replace(/^0+/, '');
+
+    // Heuristic country detection by length + leading digit pattern
+    // Egypt mobile: 10 digits, starts with 10/11/12/15
+    if (stripped.length === 10 && /^(10|11|12|15)/.test(stripped))     return '+20'  + stripped;
+    // UK mobile: 10 digits, starts with 7
+    if (stripped.length === 10 && /^7/.test(stripped))                  return '+44'  + stripped;
+    // UAE mobile: 9 digits, starts with 5
+    if (stripped.length === 9  && /^5/.test(stripped))                  return '+971' + stripped;
+    // Saudi mobile: 9 digits, starts with 5
+    if (stripped.length === 9  && /^5/.test(stripped))                  return '+966' + stripped;
+    // German mobile: 10-11 digits, starts with 15/16/17
+    if (stripped.length >= 10 && stripped.length <= 11 && /^1[567]/.test(stripped)) return '+49' + stripped;
+    // French mobile: 9 digits, starts with 6 or 7
+    if (stripped.length === 9  && /^[67]/.test(stripped))               return '+33'  + stripped;
+    // India mobile: 10 digits, starts with 6/7/8/9
+    if (stripped.length === 10 && /^[6-9]/.test(stripped) && val !== digits) return '+91' + stripped;
+    // NANP (Canada / US): 10 digits, starts with 2-9 (not Egyptian-mobile pattern)
+    if (stripped.length === 10 && /^[2-9]/.test(stripped))              return '+1'   + stripped;
+    // 11 digits starting with 1 → NANP with country code already present
+    if (stripped.length === 11 && stripped.charAt(0) === '1')           return '+'    + stripped;
+    // 11+ digits → likely already includes country code
+    if (stripped.length >= 11)                                          return '+'    + stripped;
+    // Otherwise pass through as-is (server-side will accept it)
+    return val;
+  }
+
   function submitToServer(form) {
     var c = state.answers.contact || {};
     var hp = ROOT.querySelector('[name="sapn_hp_website"]');
@@ -821,7 +859,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       sapn_hp:       hp ? hp.value : '',
       firstName:     c.firstName || '',
       email:         c.email || '',
-      phone:         c.phone || '',
+      phone:         sapnNormalizePhone(c.phone),
       reason:        state.answers.reason || '',
       study:         state.answers.study  || '',
       cpap:          state.answers.cpap   || '',

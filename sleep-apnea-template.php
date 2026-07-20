@@ -182,8 +182,9 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     .sapn-app .pointer-events-none{pointer-events:none!important;}
   </style>
 
-  <!-- LANDING -->
-  <section data-view="landing">
+  <!-- LANDING (hidden by default — flow now starts on 'intro'. Left in DOM so
+       the 'go-landing' action still works for anyone who links to it.) -->
+  <section data-view="landing" class="hidden">
     <main class="pb-28 sm:pb-16">
       <section class="mx-auto px-5 pt-10 sm:pt-20 max-w-3xl text-center">
         <span class="inline-flex items-center gap-1.5 bg-card px-3 py-1 border border-border rounded-full text-muted-foreground text-xs">
@@ -276,7 +277,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
   </section>
 
   <!-- INTRO -->
-  <section data-view="intro" class="hidden">
+  <section data-view="intro">
     <header class="top-0 z-10 sticky bg-background/80 backdrop-blur border-border/60 border-b">
       <div class="flex justify-between items-center mx-auto px-5 py-4 max-w-2xl">
         <a href="<?= esc_url( $brand_url ) ?>" class="flex items-center gap-2 font-medium text-foreground text-sm no-underline">

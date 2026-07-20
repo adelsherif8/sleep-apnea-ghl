@@ -659,6 +659,30 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     '</form>';
   }
 
+  // ── Analytics event tracker ──
+  // Fires view/start/step/complete events to the sapn_track AJAX endpoint.
+  // Deduped per session_id so refreshes don't double-count views/starts.
+  var _sapnSid = (function(){
+    try {
+      var id = sessionStorage.getItem('sapn_sid');
+      if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('sapn_sid', id); }
+      return id;
+    } catch(e) { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  })();
+  function sapnTrack(ev, sk) {
+    try {
+      var fd = new FormData();
+      fd.append('action',     'sapn_track');
+      fd.append('event_type', ev);
+      fd.append('step_key',   sk || '');
+      fd.append('session_id', _sapnSid);
+      fetch(AJAX, { method:'POST', body:fd, credentials:'same-origin' }).catch(function(){});
+    } catch(e) {}
+  }
+  // Fire 'view' once per session (page load / first visit to the form)
+  try { if (!sessionStorage.getItem('sapn_v')) { sessionStorage.setItem('sapn_v', '1'); sapnTrack('view', ''); } } catch(e) { sapnTrack('view', ''); }
+  var _sapnStarted = false;
+
   function renderStep() {
     var qd = QUESTIONS[state.currentStep];
     var html = '';
@@ -668,6 +692,12 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     stepEl.innerHTML = html;
     updateHeader();
     if (qd.type === 'contact') wireContactForm();
+    // Analytics: fire 'start' once per session on the first non-intro step,
+    // and a 'step' event for every question the user reaches.
+    if (qd && qd.id) {
+      if (!_sapnStarted && state.currentStep > 0) { _sapnStarted = true; sapnTrack('start', qd.id); }
+      sapnTrack('step', qd.id);
+    }
   }
 
   function renderResults() {
@@ -885,6 +915,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       body: Object.keys(payload).map(function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(payload[k]); }).join('&')
     }).then(function(r){ return r.json(); }).then(function(d){
       if (d && d.success) {
+        sapnTrack('complete', '');
         renderResults();
         showView('results', function(){ state.transitioning = false; });
       } else {

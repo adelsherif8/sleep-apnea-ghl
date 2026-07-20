@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.26
+ * Version:     1.0.27
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -1742,9 +1742,10 @@ function sapn_render_analytics_tab() {
             <div style="font-size:11.5px;color:#9ca3af;margin-bottom:16px;">How each visitor moves from reaching the page to submitting the form. <?= esc_html( $range['label'] ) ?>.</div>
             <?php
             $funnel_rows = [];
-            if ( $has_landing_pages ) {
-                $funnel_rows[] = [ 'lbl' => 'Visited a landing page (marketing)', 'cnt' => $landings ];
-            }
+            $landing_lbl = $has_landing_pages
+                ? 'Visited a landing page (marketing)'
+                : 'Visited a landing page (marketing)  — no landing pages configured yet';
+            $funnel_rows[] = [ 'lbl' => $landing_lbl, 'cnt' => $landings ];
             $funnel_rows[] = [ 'lbl' => 'Reached the sleep-apnea estimator page', 'cnt' => $views ];
             $funnel_rows[] = [ 'lbl' => 'Started the quiz (past intro)',           'cnt' => $starts ];
             foreach ( $canon as $key => $lbl ) {

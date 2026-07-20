@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.24
+ * Version:     1.0.25
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -15,12 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 define( 'SAPN_SLUG',           'sleep-apnea-ghl' );
 define( 'SAPN_OPTION',         'sapn_settings' );
 define( 'SAPN_ENTRIES_DB_VER', '1.0' );
+define( 'SAPN_EVENTS_DB_VER',  '1.0' );
 define( 'SAPN_FILE',           __FILE__ );
 
 // ═══════════════════════════════════════════════════════════════
 //  DATABASE — ENTRIES TABLE
 // ═══════════════════════════════════════════════════════════════
 register_activation_hook( __FILE__, 'sapn_create_entries_table' );
+register_activation_hook( __FILE__, 'sapn_create_events_table' );
 
 function sapn_create_entries_table() {
     global $wpdb;
@@ -44,9 +46,32 @@ function sapn_create_entries_table() {
     update_option( 'sapn_entries_db_version', SAPN_ENTRIES_DB_VER );
 }
 
+function sapn_create_events_table() {
+    global $wpdb;
+    $table           = $wpdb->prefix . 'sapn_events';
+    $charset_collate = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE IF NOT EXISTS {$table} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        event_type  VARCHAR(20)  NOT NULL DEFAULT '',
+        step_key    VARCHAR(100) NOT NULL DEFAULT '',
+        session_id  VARCHAR(64)  NOT NULL DEFAULT '',
+        created_at  DATETIME     NOT NULL,
+        PRIMARY KEY (id),
+        KEY idx_created (created_at),
+        KEY idx_event   (event_type),
+        KEY idx_session (session_id)
+    ) {$charset_collate};";
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta( $sql );
+    update_option( 'sapn_events_db_version', SAPN_EVENTS_DB_VER );
+}
+
 add_action( 'plugins_loaded', function () {
     if ( get_option( 'sapn_entries_db_version' ) !== SAPN_ENTRIES_DB_VER ) {
         sapn_create_entries_table();
+    }
+    if ( get_option( 'sapn_events_db_version' ) !== SAPN_EVENTS_DB_VER ) {
+        sapn_create_events_table();
     }
     // One-time migration: rename the old CTA defaults to the new ones for existing
     // installs that pre-date v1.0.16. wp_parse_args only fills missing keys, so the
@@ -146,6 +171,116 @@ function sapn_register_settings() {
     ] );
 }
 add_action( 'admin_init', 'sapn_register_settings' );
+
+// ═══════════════════════════════════════════════════════════════
+//  Auto-provision every sleep-apnea GHL custom field + place them
+//  in the correct folders. Runs once per site the first time an
+//  admin loads any admin page after upgrading. Skips silently if
+//  the API key or location ID isn't configured yet — will retry on
+//  the next admin visit.
+// ═══════════════════════════════════════════════════════════════
+add_action( 'admin_init', 'sapn_auto_provision_all_fields' );
+function sapn_auto_provision_all_fields() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+    if ( get_option( 'sapn_auto_provision_fields_v1' ) === '1' ) return;
+
+    $s           = sapn_get();
+    $api_key     = trim( sapn_ghl_clean_key( $s['ghl_api_key'] ) );
+    $location_id = trim( $s['ghl_location_id'] ?? '' );
+    if ( $api_key === '' || $location_id === '' ) return; // retry when credentials appear
+
+    $headers = sapn_ghl_headers( $api_key );
+    $base    = sapn_ghl_base();
+
+    // 1) Fetch existing custom fields
+    $r = wp_remote_get( "{$base}/locations/{$location_id}/customFields", [ 'headers' => $headers, 'timeout' => 15 ] );
+    if ( is_wp_error( $r ) ) return;
+    $code = wp_remote_retrieve_response_code( $r );
+    if ( $code === 401 || $code === 403 ) { update_option( 'sapn_auto_provision_fields_v1', '1' ); return; } // bad token — don't spam
+    if ( $code < 200 || $code >= 300 ) return;
+    $existing = [];
+    foreach ( json_decode( wp_remote_retrieve_body( $r ), true )['customFields'] ?? [] as $f ) {
+        if ( ! empty( $f['fieldKey'] ) ) {
+            $bare = strtolower( preg_replace( '/^contact\./', '', $f['fieldKey'] ) );
+            $existing[ $bare ] = $f;
+        }
+    }
+
+    // 2) Fetch (or create) each required folder
+    $folder_names = sapn_folder_names(); // [ 'Sleep Apnea Form', 'UTM Forms' ]
+    $fr = wp_remote_get( "{$base}/locations/{$location_id}/customFieldsFolders", [ 'headers' => $headers, 'timeout' => 15 ] );
+    $folder_ids = [];
+    if ( ! is_wp_error( $fr ) && wp_remote_retrieve_response_code( $fr ) < 300 ) {
+        foreach ( json_decode( wp_remote_retrieve_body( $fr ), true )['folders'] ?? [] as $folder ) {
+            $folder_ids[ strtolower( trim( $folder['name'] ?? '' ) ) ] = $folder['id'];
+        }
+    }
+    foreach ( $folder_names as $fname ) {
+        $key = strtolower( $fname );
+        if ( isset( $folder_ids[ $key ] ) ) continue;
+        $cr = wp_remote_post( "{$base}/locations/{$location_id}/customFieldsFolders", [
+            'headers' => $headers,
+            'body'    => wp_json_encode( [ 'name' => $fname ] ),
+            'timeout' => 15,
+        ] );
+        if ( ! is_wp_error( $cr ) && wp_remote_retrieve_response_code( $cr ) < 300 ) {
+            $cb = json_decode( wp_remote_retrieve_body( $cr ), true );
+            $fid = $cb['folder']['id'] ?? $cb['id'] ?? null;
+            if ( $fid ) $folder_ids[ $key ] = $fid;
+        }
+    }
+
+    // 3) Create each missing field + force-move all fields into the right folder
+    foreach ( sapn_ghl_field_definitions() as $group => $fields ) {
+        $folder_id = $folder_ids[ strtolower( $group ) ] ?? null;
+        foreach ( $fields as $def ) {
+            $bare      = strtolower( $def['key'] );
+            $field_row = $existing[ $bare ] ?? null;
+            $field_id  = $field_row['id'] ?? null;
+            if ( ! $field_row ) {
+                // Create it
+                $payload = [
+                    'name'     => $def['name'],
+                    'fieldKey' => $def['key'],
+                    'dataType' => 'TEXT',
+                    'position' => 0,
+                ];
+                if ( $folder_id ) $payload['parentId'] = $folder_id;
+                $cr = wp_remote_post( "{$base}/locations/{$location_id}/customFields", [
+                    'headers' => $headers,
+                    'body'    => wp_json_encode( $payload ),
+                    'timeout' => 15,
+                ] );
+                $ccode = is_wp_error( $cr ) ? 0 : wp_remote_retrieve_response_code( $cr );
+                if ( $ccode >= 200 && $ccode < 300 ) {
+                    $cb       = json_decode( wp_remote_retrieve_body( $cr ), true );
+                    $field_id = $cb['customField']['id'] ?? $cb['id'] ?? null;
+                }
+            }
+            // Force-move into the correct folder (GHL sometimes ignores parentId on create)
+            if ( $field_id && $folder_id && ( ( $field_row['parentId'] ?? null ) !== $folder_id ) ) {
+                wp_remote_request( "{$base}/locations/{$location_id}/customFields/{$field_id}", [
+                    'method'  => 'PUT',
+                    'headers' => $headers,
+                    'body'    => wp_json_encode( [ 'parentId' => $folder_id ] ),
+                    'timeout' => 15,
+                ] );
+            }
+        }
+    }
+
+    // Save resolved folder IDs so other tools (Move All button) work without re-detecting
+    if ( ! empty( $folder_ids ) ) {
+        $stored = sapn_get_folder_ids( $location_id );
+        foreach ( $folder_names as $fname ) {
+            $key = strtolower( $fname );
+            if ( isset( $folder_ids[ $key ] ) ) $stored[ $fname ] = $folder_ids[ $key ];
+        }
+        update_option( 'sapn_folder_ids_' . md5( $location_id ), $stored );
+    }
+
+    update_option( 'sapn_auto_provision_fields_v1', '1' );
+}
 
 function sapn_sanitize_settings( $input ) {
     $defaults = sapn_defaults();
@@ -600,6 +735,34 @@ function sapn_log_entry( $first, $last, $email, $phone, $meta = [], $ghl_status 
 add_action( 'wp_ajax_sapn_submit',        'sapn_ajax_submit' );
 add_action( 'wp_ajax_nopriv_sapn_submit', 'sapn_ajax_submit' );
 
+// ═══════════════════════════════════════════════════════════════
+//  ANALYTICS EVENT TRACKER — fired by the front-end at view / start
+//  / step / complete milestones. De-duplicated per session_id.
+// ═══════════════════════════════════════════════════════════════
+add_action( 'wp_ajax_sapn_track',        'sapn_ajax_track_event' );
+add_action( 'wp_ajax_nopriv_sapn_track', 'sapn_ajax_track_event' );
+
+function sapn_ajax_track_event() {
+    global $wpdb;
+    $event_type = sanitize_key( $_POST['event_type'] ?? '' );
+    $step_key   = sanitize_text_field( $_POST['step_key']   ?? '' );
+    $session_id = sanitize_text_field( $_POST['session_id'] ?? '' );
+    $allowed_events = [ 'view', 'start', 'step', 'complete' ];
+    if ( ! in_array( $event_type, $allowed_events, true ) || $session_id === '' ) {
+        wp_send_json_error(); return;
+    }
+    if ( get_option( 'sapn_events_db_version' ) !== SAPN_EVENTS_DB_VER ) {
+        sapn_create_events_table();
+    }
+    $wpdb->insert( $wpdb->prefix . 'sapn_events', [
+        'event_type' => $event_type,
+        'step_key'   => substr( $step_key, 0, 100 ),
+        'session_id' => substr( $session_id, 0, 64 ),
+        'created_at' => current_time( 'mysql' ),
+    ] );
+    wp_send_json_success();
+}
+
 function sapn_ajax_submit() {
     if ( ! isset( $_POST['sapn_nonce'] ) || ! wp_verify_nonce( $_POST['sapn_nonce'], 'sapn_submit' ) ) {
         wp_send_json_error( 'Security check failed. Please refresh and try again.' );
@@ -725,7 +888,7 @@ function sapn_settings_page() {
     if ( ! current_user_can( 'manage_options' ) ) return;
     $s   = sapn_get();
     $tab = sanitize_key( $_GET['sapn_tab'] ?? 'settings' );
-    if ( ! in_array( $tab, [ 'settings', 'ghl_fields', 'entries' ], true ) ) $tab = 'settings';
+    if ( ! in_array( $tab, [ 'settings', 'ghl_fields', 'entries', 'analytics' ], true ) ) $tab = 'settings';
 
     $base_url = admin_url( 'admin.php?page=' . SAPN_SLUG );
     ?>
@@ -741,6 +904,7 @@ function sapn_settings_page() {
             <a href="<?= esc_url( add_query_arg( 'sapn_tab', 'settings',   $base_url ) ) ?>" class="nav-tab <?= $tab === 'settings'   ? 'nav-tab-active' : '' ?>">Settings</a>
             <a href="<?= esc_url( add_query_arg( 'sapn_tab', 'ghl_fields', $base_url ) ) ?>" class="nav-tab <?= $tab === 'ghl_fields' ? 'nav-tab-active' : '' ?>">GHL Custom Fields</a>
             <a href="<?= esc_url( add_query_arg( 'sapn_tab', 'entries',    $base_url ) ) ?>" class="nav-tab <?= $tab === 'entries'    ? 'nav-tab-active' : '' ?>">Entries</a>
+            <a href="<?= esc_url( add_query_arg( 'sapn_tab', 'analytics',  $base_url ) ) ?>" class="nav-tab <?= $tab === 'analytics'  ? 'nav-tab-active' : '' ?>">Analytics</a>
         </h2>
 
         <?php if ( isset( $_GET['settings-updated'] ) ): ?>
@@ -752,6 +916,7 @@ function sapn_settings_page() {
             if ( $tab === 'settings' )    sapn_render_settings_tab( $s );
             if ( $tab === 'ghl_fields' )  sapn_render_ghl_fields_tab( $s );
             if ( $tab === 'entries' )     sapn_render_entries_tab();
+            if ( $tab === 'analytics' )   sapn_render_analytics_tab();
             ?>
         </div>
 
@@ -1360,4 +1525,216 @@ function sapn_shortcode( $atts ) {
     }
     require __DIR__ . '/sleep-apnea-template.php';
     return ob_get_clean();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANALYTICS TAB — funnel + per-day submissions + summary stats
+//  Modeled after the contact-form-ghl analytics visual style.
+// ═══════════════════════════════════════════════════════════════
+function sapn_analytics_resolve_range( $preset = '1m', $custom_from = '', $custom_to = '' ) {
+    $today = current_time( 'Y-m-d' );
+    $ranges = [
+        'today'     => [ $today, $today, 'Today' ],
+        'yesterday' => [ date( 'Y-m-d', strtotime( $today . ' -1 day' ) ), date( 'Y-m-d', strtotime( $today . ' -1 day' ) ), 'Yesterday' ],
+        '1w'        => [ date( 'Y-m-d', strtotime( $today . ' -6 days' ) ),  $today, 'Last 7 days' ],
+        '2w'        => [ date( 'Y-m-d', strtotime( $today . ' -13 days' ) ), $today, 'Last 14 days' ],
+        '1m'        => [ date( 'Y-m-d', strtotime( $today . ' -29 days' ) ), $today, 'Last 30 days' ],
+        '3m'        => [ date( 'Y-m-d', strtotime( $today . ' -89 days' ) ), $today, 'Last 90 days' ],
+        '1y'        => [ date( 'Y-m-d', strtotime( $today . ' -364 days' ) ),$today, 'Last 12 months' ],
+    ];
+    if ( $preset === 'custom' && $custom_from && $custom_to ) {
+        return [ 'from' => $custom_from, 'to' => $custom_to, 'label' => $custom_from . ' → ' . $custom_to, 'preset' => 'custom' ];
+    }
+    if ( ! isset( $ranges[ $preset ] ) ) $preset = '1m';
+    $r = $ranges[ $preset ];
+    return [ 'from' => $r[0], 'to' => $r[1], 'label' => $r[2], 'preset' => $preset ];
+}
+
+function sapn_render_analytics_tab() {
+    $preset = sanitize_key( $_GET['sapn_range'] ?? '1m' );
+    $from   = sanitize_text_field( $_GET['sapn_from'] ?? '' );
+    $to     = sanitize_text_field( $_GET['sapn_to']   ?? '' );
+    $range  = sapn_analytics_resolve_range( $preset, $from, $to );
+    ?>
+    <div class="sapn-analytics">
+        <h2 style="margin-top:0;">Analytics <span style="font-size:13px;font-weight:400;color:#94a3b8;">— <?= esc_html( $range['label'] ) ?></span></h2>
+        <p style="color:#64748b;font-size:13px;margin-top:-6px;">Conversion funnel + submission volume for the sleep-apnea estimator.</p>
+
+        <!-- Range picker -->
+        <div class="sapn-an-range-bar">
+            <span>Date range</span>
+            <?php
+            $base = admin_url( 'admin.php?page=' . SAPN_SLUG . '&sapn_tab=analytics' );
+            $presets = [ 'today'=>'Today','yesterday'=>'Yesterday','1w'=>'Last 7 days','2w'=>'Last 14 days','1m'=>'Last 30 days','3m'=>'Last 90 days','1y'=>'Last 12 months' ];
+            foreach ( $presets as $pk => $pl ):
+                $active = ( $preset === $pk );
+                $url    = add_query_arg( 'sapn_range', $pk, $base );
+            ?>
+            <a href="<?= esc_url( $url ) ?>" class="<?= $active ? 'active' : '' ?>"><?= esc_html( $pl ) ?></a>
+            <?php endforeach; ?>
+        </div>
+        <style>
+        .sapn-an-range-bar{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:16px 0 22px;font-size:12px;}
+        .sapn-an-range-bar > span:first-child{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-right:8px;}
+        .sapn-an-range-bar a{font-size:11.5px;padding:5px 11px;border-radius:14px;color:#475569;border:1px solid #e5e7eb;background:#fff;text-decoration:none;font-weight:500;transition:all .12s;}
+        .sapn-an-range-bar a:hover{background:#f8fafc;border-color:#cbd5e1;color:#1d2327;}
+        .sapn-an-range-bar a.active{background:#0891b2;color:#fff;border-color:#0891b2;font-weight:600;}
+        .sapn-an-card{background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+        .sapn-an-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+        .sapn-an-tile{background:#f8fafc;border-radius:10px;padding:16px;text-align:center;}
+        .sapn-an-tile .num{font-size:26px;font-weight:700;color:#1d2327;line-height:1;}
+        .sapn-an-tile .lbl{font-size:10px;font-weight:600;color:#9ca3af;margin-top:6px;text-transform:uppercase;letter-spacing:.07em;}
+        .sapn-an-tile.hi .num{color:#0891b2;}
+        .sapn-src-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+        .sapn-src-row .lbl{width:340px;flex-shrink:0;font-size:12.5px;color:#374151;line-height:1.4;}
+        .sapn-src-row .bar{flex:1;background:#f3f4f6;border-radius:6px;height:10px;overflow:hidden;}
+        .sapn-src-row .fill{height:100%;border-radius:6px;background:#0891b2;transition:width .3s;}
+        .sapn-src-row .cnt{font-size:13px;font-weight:600;color:#1d2327;width:36px;text-align:right;flex-shrink:0;}
+        .sapn-src-row.is-zero .lbl,.sapn-src-row.is-zero .cnt{color:#cbd5e1;}
+        .sapn-src-row.is-zero .fill{opacity:.15;}
+        .sapn-bar-chart{display:flex;align-items:flex-end;gap:2px;height:80px;margin-top:8px;}
+        .sapn-bar-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;min-width:0;}
+        .sapn-bar-col .b{width:100%;background:#0891b2;border-radius:3px 3px 0 0;min-height:4px;}
+        .sapn-bar-col.zero .b{background:#e5e7eb;}
+        </style>
+
+        <?php
+        global $wpdb;
+        $ev_table  = $wpdb->prefix . 'sapn_events';
+        $en_table  = $wpdb->prefix . 'sapn_entries';
+        $ev_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$ev_table}'" ) === $ev_table;
+        $an_from   = $range['from'];
+        $an_to     = $range['to'];
+        $an_where  = $wpdb->prepare( 'DATE(created_at) BETWEEN %s AND %s', $an_from, $an_to );
+
+        // Actual submitted entries (source of truth for "completed")
+        $entries_cnt = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$en_table} WHERE {$an_where}" );
+        $entries_all = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$en_table}" );
+        $entries_ok  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$en_table} WHERE ghl_status='ok' AND {$an_where}" );
+        $entries_err = $entries_cnt - $entries_ok;
+
+        // Funnel counts (unique sessions)
+        $views    = 0; $starts = 0;
+        $step_cnts = [];
+        if ( $ev_exists ) {
+            $views   = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='view'  AND {$an_where}" );
+            $starts  = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='start' AND {$an_where}" );
+            $rows    = $wpdb->get_results( "SELECT step_key, COUNT(DISTINCT session_id) AS cnt FROM {$ev_table} WHERE event_type='step' AND {$an_where} AND step_key<>'' GROUP BY step_key", ARRAY_A );
+            foreach ( $rows as $r ) $step_cnts[ $r['step_key'] ] = (int) $r['cnt'];
+        }
+
+        // Canonical question order + friendly labels
+        $canon = [
+            'reason'   => 'Reason for inquiry',
+            'study'    => 'Sleep study / diagnosis',
+            'cpap'     => 'CPAP experience',
+            'symptoms' => 'Symptoms selected',
+            'airway'   => 'Airway concerns',
+            'contact'  => 'Contact form reached',
+        ];
+        $conv = $views > 0 ? round( $entries_cnt / $views * 100 ) : 0;
+
+        // Daily submissions
+        $days = max( 1, (int) round( ( strtotime( $an_to ) - strtotime( $an_from ) ) / 86400 ) + 1 );
+        $daily = $wpdb->get_results( "SELECT DATE(created_at) AS day, COUNT(*) AS cnt FROM {$en_table} WHERE {$an_where} GROUP BY DATE(created_at)", ARRAY_A );
+        $daily_map = [];
+        foreach ( $daily as $r ) $daily_map[ $r['day'] ] = (int) $r['cnt'];
+        $daily_filled = [];
+        for ( $i = 0; $i < $days; $i++ ) {
+            $d = date( 'Y-m-d', strtotime( "+{$i} days", strtotime( $an_from ) ) );
+            $daily_filled[] = [ 'day' => date( 'M j', strtotime( $d ) ), 'cnt' => $daily_map[ $d ] ?? 0 ];
+        }
+        $daily_max = max( 1, max( array_column( $daily_filled, 'cnt' ) ) );
+        ?>
+
+        <?php if ( ! $ev_exists ): ?>
+        <div class="sapn-an-card" style="background:#fffbeb;border-color:#fde68a;color:#92400e;">
+            ⏳ Analytics event tracking table is being set up. Data will appear here after the first form view is recorded.
+        </div>
+        <?php else: ?>
+
+        <!-- Summary tiles -->
+        <div class="sapn-an-grid">
+            <div class="sapn-an-tile"><div class="num"><?= $views ?></div><div class="lbl">Unique visitors</div></div>
+            <div class="sapn-an-tile"><div class="num"><?= $starts ?></div><div class="lbl">Started the quiz</div></div>
+            <div class="sapn-an-tile hi"><div class="num"><?= $entries_cnt ?></div><div class="lbl">Submitted</div></div>
+            <div class="sapn-an-tile"><div class="num"><?= $conv ?>%</div><div class="lbl">Views → submit</div></div>
+        </div>
+
+        <!-- Funnel -->
+        <div class="sapn-an-card">
+            <div style="font-size:15px;font-weight:700;color:#0891b2;margin-bottom:3px;">Funnel — Sleep Apnea Estimator</div>
+            <div style="font-size:11.5px;color:#9ca3af;margin-bottom:16px;">How each visitor moves from reaching the page to submitting the form. <?= esc_html( $range['label'] ) ?>.</div>
+            <?php
+            $funnel_rows = array_merge(
+                [ [ 'lbl' => 'Reached the sleep-apnea estimator page', 'cnt' => $views ] ],
+                [ [ 'lbl' => 'Started the quiz (past intro)',           'cnt' => $starts ] ]
+            );
+            foreach ( $canon as $key => $lbl ) {
+                $funnel_rows[] = [ 'lbl' => $lbl, 'cnt' => $step_cnts[ $key ] ?? 0 ];
+            }
+            $funnel_rows[] = [ 'lbl' => 'Submitted form (became a lead)', 'cnt' => $entries_cnt ];
+            $fmax = max( 1, max( array_column( $funnel_rows, 'cnt' ) ) );
+            foreach ( $funnel_rows as $row ):
+                $cnt  = (int) $row['cnt'];
+                $pct  = round( $cnt / $fmax * 100 );
+                $zero = $cnt === 0;
+            ?>
+            <div class="sapn-src-row <?= $zero ? 'is-zero' : '' ?>">
+                <span class="lbl"><?= esc_html( $row['lbl'] ) ?></span>
+                <div class="bar"><div class="fill" style="width:<?= max($pct,2) ?>%;"></div></div>
+                <span class="cnt"><?= $cnt ?></span>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Daily submissions -->
+        <div class="sapn-an-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:20px;">
+                <div>
+                    <div style="font-size:15px;font-weight:700;color:#1d2327;">Daily Submissions</div>
+                    <div style="font-size:11.5px;color:#9ca3af;">Form submissions per day · <?= esc_html( $range['label'] ) ?></div>
+                </div>
+                <div style="display:flex;gap:20px;">
+                    <div style="text-align:right;"><div style="font-size:24px;font-weight:700;color:#0891b2;line-height:1;"><?= $entries_cnt ?></div><div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-top:5px;font-weight:600;">Total</div></div>
+                    <div style="text-align:right;"><div style="font-size:24px;font-weight:700;color:#1d2327;line-height:1;"><?= (int) $daily_max ?></div><div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-top:5px;font-weight:600;">Peak day</div></div>
+                </div>
+            </div>
+            <div class="sapn-bar-chart">
+            <?php foreach ( $daily_filled as $d ): ?>
+                <div class="sapn-bar-col <?= $d['cnt'] === 0 ? 'zero' : '' ?>" title="<?= esc_attr( $d['day'] ) ?>: <?= $d['cnt'] ?>">
+                    <div class="b" style="height:<?= $d['cnt'] > 0 ? round( $d['cnt']/$daily_max*100 ) : 4 ?>%;"></div>
+                </div>
+            <?php endforeach; ?>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;margin-top:6px;">
+                <span><?= esc_html( $daily_filled[0]['day'] ) ?></span>
+                <span><?= esc_html( $daily_filled[ count( $daily_filled ) - 1 ]['day'] ) ?></span>
+            </div>
+        </div>
+
+        <!-- GHL send health -->
+        <?php $ok_pct = $entries_cnt > 0 ? round( $entries_ok / $entries_cnt * 100 ) : 100; ?>
+        <div class="sapn-an-card">
+            <div style="font-size:15px;font-weight:700;color:#1d2327;margin-bottom:3px;">GHL Send Health</div>
+            <div style="font-size:11.5px;color:#9ca3af;margin-bottom:14px;">Percentage of submissions that reached GoHighLevel successfully. <?= esc_html( $range['label'] ) ?>.</div>
+            <div style="display:flex;align-items:center;gap:24px;">
+                <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+                    <svg viewBox="0 0 36 36" style="width:72px;height:72px;transform:rotate(-90deg);">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f3f4f6" stroke-width="3.5"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="<?= $ok_pct>=90?'#16a34a':($ok_pct>=70?'#f59e0b':'#dc2626') ?>" stroke-width="3.5" stroke-dasharray="<?= $ok_pct ?> 100" stroke-linecap="round"/>
+                    </svg>
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:<?= $ok_pct>=90?'#16a34a':($ok_pct>=70?'#f59e0b':'#dc2626') ?>;"><?= $ok_pct ?>%</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="font-size:13px;color:#374151;">✓ <strong><?= $entries_ok ?></strong> sent successfully</div>
+                    <div style="font-size:13px;color:#374151;">✗ <strong><?= $entries_err ?></strong> failed</div>
+                    <div style="font-size:11px;color:#9ca3af;">All time: <?= $entries_all ?> submissions</div>
+                </div>
+            </div>
+        </div>
+
+        <?php endif; ?>
+    </div>
+    <?php
 }

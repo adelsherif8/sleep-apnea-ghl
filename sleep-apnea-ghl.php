@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.25
+ * Version:     1.0.26
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -155,6 +155,11 @@ function sapn_defaults() {
         // Hide the site header / footer on pages where the form is shown
         'hide_header'            => '0',
         'hide_footer'            => '0',
+
+        // Landing-page tracking — pages a visitor visits before landing on
+        // the estimator page. Fires a 'landing' event so analytics can show
+        // the full marketing-page → estimator → submit funnel.
+        'landing_pages'          => [],
     ];
 }
 
@@ -290,6 +295,10 @@ function sapn_sanitize_settings( $input ) {
             $clean[ $key ] = sanitize_textarea_field( $input[ $key ] ?? $default );
         } elseif ( in_array( $key, [ 'success_redirect_url', 'result_book_url', 'result_insurance_url', 'next_steps_link1_url', 'next_steps_link2_url', 'next_steps_link3_url' ], true ) ) {
             $clean[ $key ] = esc_url_raw( $input[ $key ] ?? $default );
+        } elseif ( $key === 'landing_pages' ) {
+            $raw = $input[ $key ] ?? [];
+            if ( ! is_array( $raw ) ) $raw = [];
+            $clean[ $key ] = array_values( array_filter( array_map( 'absint', $raw ) ) );
         } else {
             $clean[ $key ] = sanitize_text_field( $input[ $key ] ?? $default );
         }
@@ -747,7 +756,7 @@ function sapn_ajax_track_event() {
     $event_type = sanitize_key( $_POST['event_type'] ?? '' );
     $step_key   = sanitize_text_field( $_POST['step_key']   ?? '' );
     $session_id = sanitize_text_field( $_POST['session_id'] ?? '' );
-    $allowed_events = [ 'view', 'start', 'step', 'complete' ];
+    $allowed_events = [ 'view', 'start', 'step', 'complete', 'landing' ];
     if ( ! in_array( $event_type, $allowed_events, true ) || $session_id === '' ) {
         wp_send_json_error(); return;
     }
@@ -761,6 +770,46 @@ function sapn_ajax_track_event() {
         'created_at' => current_time( 'mysql' ),
     ] );
     wp_send_json_success();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Landing-page tracker — fires a 'landing' event via JS on every
+//  page load whose Post ID is in the configured landing_pages
+//  setting. Uses the SAME session_id key as the estimator form
+//  (sessionStorage 'sapn_sid') so the same visitor's journey is
+//  linked when they later reach the estimator page.
+// ═══════════════════════════════════════════════════════════════
+add_action( 'wp_footer', 'sapn_landing_page_tracker' );
+function sapn_landing_page_tracker() {
+    if ( is_admin() ) return;
+    // get_queried_object_id() is more reliable in wp_footer than get_the_ID()
+    $page_id = (int) get_queried_object_id();
+    if ( ! $page_id ) $page_id = (int) get_the_ID();
+    if ( ! $page_id ) return;
+
+    $s     = sapn_get();
+    $pages = array_map( 'intval', (array) ( $s['landing_pages'] ?? [] ) );
+    if ( ! in_array( $page_id, $pages, true ) ) return;
+
+    $ajax_url = admin_url( 'admin-ajax.php' );
+    ?>
+    <script>
+    (function(){
+        try {
+            var sid = sessionStorage.getItem('sapn_sid');
+            if (!sid) { sid = Math.random().toString(36).slice(2)+Date.now().toString(36); sessionStorage.setItem('sapn_sid', sid); }
+            if (sessionStorage.getItem('sapn_landing')) return; // dedupe per session
+            sessionStorage.setItem('sapn_landing', '1');
+            var fd = new FormData();
+            fd.append('action',     'sapn_track');
+            fd.append('event_type', 'landing');
+            fd.append('step_key',   String(<?= (int) $page_id ?>));
+            fd.append('session_id', sid);
+            fetch('<?= esc_js( $ajax_url ) ?>', { method:'POST', body: fd, credentials:'same-origin' }).catch(function(){});
+        } catch(e) {}
+    })();
+    </script>
+    <?php
 }
 
 function sapn_ajax_submit() {
@@ -994,6 +1043,30 @@ function sapn_render_settings_tab( $s ) {
                     <label><input type="checkbox" name="<?= SAPN_OPTION ?>[hide_header]" value="1" <?= checked( $s['hide_header'], '1', false ) ?>/> Hide the WordPress theme's <strong>header</strong> on pages with this form.</label><br>
                     <label><input type="checkbox" name="<?= SAPN_OPTION ?>[hide_footer]" value="1" <?= checked( $s['hide_footer'], '1', false ) ?>/> Hide the WordPress theme's <strong>footer</strong> on pages with this form.</label>
                     <p class="description">Per-shortcode override: <code>[sleep_apnea_form hide_header="1" hide_footer="0"]</code></p>
+                </td>
+            </tr>
+        </table>
+
+        <h2>Landing Pages (analytics tracking)</h2>
+        <p style="margin-top:-6px;color:#64748b;font-size:13px;max-width:720px;">
+            Pick the pages a visitor typically visits <em>before</em> reaching the sleep apnea estimator (e.g. a marketing page about sleep apnea).
+            When a visitor lands on any of these pages, a "landing" event fires. Then when the same session reaches the estimator page and submits,
+            the Analytics tab shows the full <strong>marketing page → estimator → submit</strong> funnel.
+        </p>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="sapn_landing_pages">Track visits to these pages</label></th>
+                <td>
+                    <?php
+                    $lp_selected = array_map( 'intval', (array) ( $s['landing_pages'] ?? [] ) );
+                    $lp_all      = get_pages( [ 'sort_column' => 'post_title', 'sort_order' => 'ASC' ] );
+                    ?>
+                    <select id="sapn_landing_pages" name="<?= SAPN_OPTION ?>[landing_pages][]" multiple size="8" style="width:100%;max-width:560px;padding:6px;font-size:13px;">
+                        <?php foreach ( $lp_all as $p ): ?>
+                        <option value="<?= (int) $p->ID ?>" <?= in_array( (int) $p->ID, $lp_selected, true ) ? 'selected' : '' ?>><?= esc_html( $p->post_title ) ?> <span style="color:#94a3b8;">(/<?= esc_html( $p->post_name ) ?>)</span></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">Hold <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> to select multiple. Leave empty to disable landing-page tracking.</p>
                 </td>
             </tr>
         </table>
@@ -1614,14 +1687,16 @@ function sapn_render_analytics_tab() {
         $entries_err = $entries_cnt - $entries_ok;
 
         // Funnel counts (unique sessions)
-        $views    = 0; $starts = 0;
+        $views    = 0; $starts = 0; $landings = 0;
         $step_cnts = [];
         if ( $ev_exists ) {
-            $views   = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='view'  AND {$an_where}" );
-            $starts  = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='start' AND {$an_where}" );
-            $rows    = $wpdb->get_results( "SELECT step_key, COUNT(DISTINCT session_id) AS cnt FROM {$ev_table} WHERE event_type='step' AND {$an_where} AND step_key<>'' GROUP BY step_key", ARRAY_A );
+            $landings = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='landing' AND {$an_where}" );
+            $views    = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='view'    AND {$an_where}" );
+            $starts   = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT session_id) FROM {$ev_table} WHERE event_type='start'   AND {$an_where}" );
+            $rows     = $wpdb->get_results( "SELECT step_key, COUNT(DISTINCT session_id) AS cnt FROM {$ev_table} WHERE event_type='step' AND {$an_where} AND step_key<>'' GROUP BY step_key", ARRAY_A );
             foreach ( $rows as $r ) $step_cnts[ $r['step_key'] ] = (int) $r['cnt'];
         }
+        $has_landing_pages = ! empty( array_filter( (array) ( $s['landing_pages'] ?? [] ) ) );
 
         // Canonical question order + friendly labels
         $canon = [
@@ -1666,10 +1741,12 @@ function sapn_render_analytics_tab() {
             <div style="font-size:15px;font-weight:700;color:#0891b2;margin-bottom:3px;">Funnel — Sleep Apnea Estimator</div>
             <div style="font-size:11.5px;color:#9ca3af;margin-bottom:16px;">How each visitor moves from reaching the page to submitting the form. <?= esc_html( $range['label'] ) ?>.</div>
             <?php
-            $funnel_rows = array_merge(
-                [ [ 'lbl' => 'Reached the sleep-apnea estimator page', 'cnt' => $views ] ],
-                [ [ 'lbl' => 'Started the quiz (past intro)',           'cnt' => $starts ] ]
-            );
+            $funnel_rows = [];
+            if ( $has_landing_pages ) {
+                $funnel_rows[] = [ 'lbl' => 'Visited a landing page (marketing)', 'cnt' => $landings ];
+            }
+            $funnel_rows[] = [ 'lbl' => 'Reached the sleep-apnea estimator page', 'cnt' => $views ];
+            $funnel_rows[] = [ 'lbl' => 'Started the quiz (past intro)',           'cnt' => $starts ];
             foreach ( $canon as $key => $lbl ) {
                 $funnel_rows[] = [ 'lbl' => $lbl, 'cnt' => $step_cnts[ $key ] ?? 0 ];
             }

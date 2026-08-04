@@ -3,7 +3,7 @@
  * Plugin Name: Sleep Apnea Estimator + GoHighLevel
  * Plugin URI: https://upwork.com/freelancers/adelsherif8
  * Description: Sleep apnea / sleep appliance estimator with GoHighLevel CRM integration. Use shortcode [sleep_apnea_form].
- * Version:     1.0.28
+ * Version:     1.0.29
  * Author:      Adel Emad
  * Author URI:  https://upwork.com/freelancers/adelsherif8
  * Requires PHP: 7.4
@@ -831,6 +831,7 @@ function sapn_ajax_submit() {
 
     if ( $first === '' )            wp_send_json_error( 'First name is required.' );
     if ( ! is_email( $email ) )     wp_send_json_error( 'A valid email address is required.' );
+    if ( strlen( preg_replace( '/\D/', '', $phone ) ) < 7 ) wp_send_json_error( 'A valid phone number is required.' );
 
     if ( empty( $s['ghl_api_key'] ) || empty( $s['ghl_location_id'] ) ) {
         wp_send_json_error( 'The form is not fully configured yet. Please contact us directly.' );

@@ -649,7 +649,7 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
       '<div class="gap-4 grid bg-card shadow-[var(--shadow-card)] p-5 border border-border rounded-2xl">' +
         '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">First Name</span><input name="firstName" maxlength="80" value="' + (c.firstName || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
         '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Email Address</span><input name="email" type="email" maxlength="200" value="' + (c.email || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
-        '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Phone Number (optional)</span><input name="phone" type="tel" maxlength="30" value="' + (c.phone || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
+        '<label class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Phone Number <span class="text-red-500">*</span></span><input name="phone" type="tel" maxlength="30" required value="' + (c.phone || '').replace(/"/g,'&quot;') + '" class="bg-background px-4 py-3 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"/></label>' +
         '<div class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Preferred way to be contacted (optional)</span><div class="gap-2 grid grid-cols-3">' + pillsHtml('contactPref', contactPrefOpts, true) + '</div></div>' +
         '<div class="block"><span class="block mb-1.5 font-medium text-muted-foreground text-xs">Do you have extended health benefits? (optional)</span><div class="gap-2 grid grid-cols-3">' + pillsHtml('benefits', benefitsOpts, false) + '</div></div>' +
       '</div>' +
@@ -804,7 +804,12 @@ $brand_url = ! empty( $s['brand_url'] ) ? $s['brand_url'] : home_url( '/' );
     function syncSubmit() {
       var first = form.querySelector('input[name="firstName"]').value.trim();
       var email = form.querySelector('input[name="email"]').value.trim();
-      var valid = first.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      var phone = form.querySelector('input[name="phone"]').value.trim();
+      // Phone is required — minimum 7 digits after stripping non-numerics
+      var phoneDigits = phone.replace(/\D/g, '');
+      var valid = first.length > 0
+        && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+        && phoneDigits.length >= 7;
       form.querySelector('[data-action="submit-contact"]').disabled = !valid;
     }
     form.addEventListener('input', function(e){
